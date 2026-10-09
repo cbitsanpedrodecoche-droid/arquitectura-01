@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitectura de Escritorio · PC Moderno x86-64 · Prof. Luis Vásquez · Fundabit Isla de Coche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c1:#ff6b6b; --c2:#4ecdc4; --c3:#ffe66d;
+  --c4:#a06cd5; --c5:#5ee7df;
+  --wa1:#25D366; --wa2:#128C7E;
+  --pcb:#0a1e14; --pcb2:#061610;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%; overflow:hidden; font-family:'Nunito',system-ui,-apple-system,sans-serif; background:#0b0a1f; color:#fff;}
+body::before{content:''; position:fixed; inset:-20%;
+  background:
+    radial-gradient(circle at 20% 25%, rgba(160,108,213,.40), transparent 45%),
+    radial-gradient(circle at 80% 70%, rgba(78,205,196,.30), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(255,107,107,.25), transparent 50%);
+  animation:blobFloat 20s ease-in-out infinite alternate; z-index:0; pointer-events:none;}
+@keyframes blobFloat{from{transform:translate(0,0) scale(1);} to{transform:translate(-4%,4%) scale(1.15);}}
+.progress{position:fixed;top:0;left:0;width:100%;height:5px;background:rgba(255,255,255,.07);z-index:100;}
+.progress-bar{height:100%; width:0%;
+  background:linear-gradient(90deg,var(--c1),var(--c3),var(--c2),var(--c4));
+  background-size:300% 100%; animation:gradShift 4s linear infinite;
+  transition:width .45s cubic-bezier(.34,1.4,.64,1);
+  box-shadow:0 0 14px rgba(78,205,196,.8);}
+@keyframes gradShift{to{background-position:300% 0;}}
+.topbar{position:fixed; top:0; left:0; right:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:99;
+  background:linear-gradient(180deg, rgba(11,10,31,.92), rgba(11,10,31,0)); pointer-events:none;}
+.eval-title{font-family:'Fredoka',sans-serif; font-weight:700; font-size:clamp(.9rem,2vw,1.2rem); letter-spacing:1px;
+  background:linear-gradient(135deg,#ffe66d,#ff6b6b,#4ecdc4); background-size:200% 200%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:gradShift 6s ease infinite; filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));
+  display:flex; align-items:center; gap:8px; pointer-events:auto;}
+.eval-title .dot-ev{width:10px; height:10px; border-radius:50%; background:#ff6b6b; box-shadow:0 0 12px #ff6b6b; animation:pulse 1.5s ease-in-out infinite;}
+.counter{font-family:'Fredoka',sans-serif; font-size:.85rem; letter-spacing:1px; color:rgba(255,255,255,.65); display:flex; align-items:center; gap:8px; pointer-events:auto;}
+.counter b{color:#4ecdc4;font-size:1.05rem;}
+.lock-badge{display:none; align-items:center; gap:4px; font-size:.7rem; padding:2px 8px;
+  background:rgba(255,230,109,.15); border:1px solid rgba(255,230,109,.4);
+  border-radius:999px; color:#ffe66d; letter-spacing:.5px;}
+.lock-badge.show{display:inline-flex;}
+.brand{position:fixed; bottom:16px; left:22px; z-index:100; background:#fff; border-radius:12px; padding:6px 12px;
+  box-shadow:0 6px 22px rgba(0,0,0,.45); transition:transform .3s ease, box-shadow .3s ease;
+  display:flex; align-items:center; gap:8px;}
+.brand img{ height:36px; display:block; }
+.brand:hover{ transform:translateY(-4px) scale(1.05); box-shadow:0 10px 30px rgba(0,0,0,.55); }
+.slide-footer{position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  font-family:'Fredoka',sans-serif; font-weight:700; font-size:clamp(.62rem,1.4vw,.82rem);
+  letter-spacing:2px; color:rgba(94,231,223,.55); text-transform:uppercase;
+  pointer-events:none; z-index:5; display:flex; align-items:center; gap:8px; white-space:nowrap;}
+.slide-footer::before, .slide-footer::after{content:''; width:24px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(94,231,223,.5), transparent);}
+.slide-footer b{ color:rgba(255,230,109,.85); font-weight:700; }
+.toast{position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.9);
+  background:rgba(15,10,40,.96); color:#fff; padding:1rem 1.6rem; border-radius:16px;
+  font-family:'Fredoka',sans-serif; font-size:clamp(.9rem,2vw,1.1rem);
+  z-index:1000; opacity:0; pointer-events:none; transition:opacity .3s, transform .3s;
+  border:1px solid rgba(255,230,109,.35); box-shadow:0 12px 40px rgba(0,0,0,.6);
+  max-width:80vw; text-align:center; line-height:1.4; white-space:pre-line;}
+.toast.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+.deck{position:relative;width:100vw;height:100vh;z-index:1;}
+.slide{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center;
+  padding:7vh 4vw 11vh; text-align:center; opacity:0; visibility:hidden;
+  transform:scale(.92) translateY(20px);
+  transition:opacity .5s ease, transform .5s cubic-bezier(.34,1.3,.64,1), visibility .5s;
+  overflow-y:auto; scrollbar-width:none;}
+.slide::-webkit-scrollbar{display:none;}
+.slide.active{opacity:1; visibility:visible; transform:scale(1) translateY(0);}
+.slide.active .anim{animation:popIn .65s cubic-bezier(.34,1.56,.64,1) both; animation-delay:var(--d,0s);}
+@keyframes popIn{from{opacity:0; transform:translateY(34px) scale(.88);} to{opacity:1; transform:translateY(0) scale(1);}}
+h1,h2,h3{font-family:'Fredoka',sans-serif; line-height:1.15;}
+h2{font-size:clamp(1.3rem,3.6vw,2.3rem); font-weight:700; margin-bottom:.5rem;}
+.lead{font-size:clamp(.88rem,2vw,1.2rem); color:rgba(255,255,255,.82); margin-bottom:.7rem;}
+.emoji{font-size:clamp(1.8rem,4vw,2.6rem); line-height:1; margin-bottom:.5rem;}
+.emoji.big{font-size:clamp(2.4rem,6vw,4rem);}
+.cover-title{font-size:clamp(2rem,8vw,5.2rem); font-weight:700; letter-spacing:-.02em; line-height:.95;}
+.grad{background:linear-gradient(135deg,#ff6b6b,#ffe66d,#4ecdc4,#a06cd5,#ff6b6b);
+  background-size:300% 300%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:gradShift 6s ease infinite;}
+.cover-sub{font-size:clamp(.95rem,2.2vw,1.3rem); margin-top:.6rem; color:rgba(255,255,255,.85); font-weight:700;}
+.prof-tag{display:inline-flex; align-items:center; gap:.5rem; margin-top:.9rem; padding:.55rem 1.4rem;
+  border-radius:999px; background:linear-gradient(135deg, rgba(255,230,109,.16), rgba(160,108,213,.16));
+  border:1px solid rgba(255,230,109,.5); font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.85rem,2vw,1.1rem); color:#ffe66d; letter-spacing:1px;
+  box-shadow:0 6px 22px rgba(255,230,109,.18); text-shadow:0 0 12px rgba(255,230,109,.5);}
+.prof-tag .prof-icon{font-size:1.15em; filter:drop-shadow(0 0 8px rgba(255,230,109,.8));}
+.badge{display:inline-block; padding:6px 18px; border-radius:999px; background:rgba(78,205,196,.15);
+  border:1px solid rgba(78,205,196,.5); color:#5ee7df; font-size:clamp(.7rem,1.6vw,.9rem);
+  font-weight:700; letter-spacing:1.5px; text-transform:uppercase;}
+.cards{display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-top:1rem; width:100%; max-width:1120px;}
+.card{flex:1 1 190px; max-width:300px; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.13); border-radius:20px; padding:1rem .95rem;
+  backdrop-filter:blur(8px); transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease;}
+.card:hover{ transform:translateY(-9px) scale(1.03); border-color:rgba(78,205,196,.65); box-shadow:0 14px 40px rgba(78,205,196,.22);}
+.card h3{font-size:clamp(.95rem,1.9vw,1.15rem); margin-bottom:.35rem; color:#ffe66d;}
+.card p{font-size:clamp(.75rem,1.55vw,.92rem); color:rgba(255,255,255,.8); line-height:1.5;}
+.fact{margin-top:1rem; background:rgba(255,230,109,.1); border-left:5px solid #ffe66d;
+  border-radius:12px; padding:.8rem 1.2rem; font-size:clamp(.82rem,1.8vw,1.05rem);
+  max-width:820px; text-align:left; color:rgba(255,255,255,.92);}
+.tags{display:flex; flex-wrap:wrap; gap:.7rem; justify-content:center; margin-top:1.1rem; max-width:900px;}
+.tag{font-family:'Courier New',monospace; background:rgba(160,108,213,.18);
+  border:1px solid rgba(160,108,213,.55); color:#d6bcff; padding:7px 14px; border-radius:999px;
+  font-size:clamp(.72rem,1.7vw,.95rem); transition:transform .25s, background .25s;}
+.tag:hover{transform:translateY(-4px) rotate(-2deg); background:rgba(160,108,213,.35);}
+.specs-table{display:grid; grid-template-columns: 1fr 1.4fr; gap:.5rem .9rem; margin-top:1.2rem;
+  width:100%; max-width:900px; text-align:left;}
+.specs-table .k{font-family:'Fredoka',sans-serif; font-weight:700; font-size:clamp(.75rem,1.6vw,.95rem);
+  color:#5ee7df; background:rgba(94,231,223,.08); padding:.55rem .9rem; border-radius:10px;
+  border:1px solid rgba(94,231,223,.3); display:flex; align-items:center; gap:.4rem;}
+.specs-table .v{font-size:clamp(.72rem,1.55vw,.92rem); color:rgba(255,255,255,.88);
+  background:rgba(255,255,255,.04); padding:.55rem .9rem; border-radius:10px;
+  border:1px solid rgba(255,255,255,.1); display:flex; align-items:center;}
+.specs-table .v b{color:#ffe66d;}
+.mobo-stage{position:relative; width:100%; max-width:1180px; margin-top:.6rem;
+  display:grid; grid-template-columns: minmax(0, 1fr) 210px; gap:16px; align-items:start;}
+.mobo-col{display:flex; flex-direction:column; min-width:0;}
+.monitor-col{display:flex; flex-direction:column; align-items:center; padding-top:20px;}
+.mobo{position:relative; width:100%; aspect-ratio: 16 / 10;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(30,92,58,.35), transparent 60%),
+    radial-gradient(circle at 75% 70%, rgba(30,92,58,.25), transparent 55%),
+    linear-gradient(135deg, var(--pcb) 0%, var(--pcb2) 50%, #081a10 100%);
+  border-radius:16px; border:2px solid #1a3a28;
+  box-shadow: inset 0 0 80px rgba(0,0,0,.75), inset 0 0 12px rgba(78,205,196,.15),
+    0 18px 50px rgba(0,0,0,.55), 0 0 44px rgba(78,205,196,.14);
+  overflow:hidden;}
+.mobo::before{content:''; position:absolute; inset:0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(30,92,58,.10) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgba(30,92,58,.10) 0 1px, transparent 1px 22px);
+  pointer-events:none; z-index:0;}
+.mobo::after{content:''; position:absolute; inset:0;
+  background:linear-gradient(120deg, rgba(255,255,255,.05) 0%, transparent 35%, transparent 65%, rgba(255,255,255,.03) 100%);
+  pointer-events:none; z-index:0;}
+.screw{position:absolute; width:12px; height:12px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #4a4a4a, #1a1a1a 70%);
+  border:1px solid #000; box-shadow:inset 0 0 3px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6); z-index:20;}
+.screw.tl{top:6px; left:6px;} .screw.tr{top:6px; right:6px;}
+.screw.bl{bottom:6px; left:6px;} .screw.br{bottom:6px; right:6px;}
+.screw.tc{top:6px; left:50%; transform:translateX(-50%);}
+.screw.bc{bottom:6px; left:50%; transform:translateX(-50%);}
+.mobo-brand{position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  font-family:'Fredoka',sans-serif; font-weight:700; font-size:clamp(.5rem,1.1vw,.68rem);
+  letter-spacing:2.5px; color:rgba(120,220,180,.55); text-shadow:0 0 8px rgba(78,205,196,.4);
+  z-index:5; pointer-events:none;}
+.mobo-brand b{color:rgba(94,231,223,.85);}
+.io-panel{position:absolute; left:0; top:8%; width:3%; height:30%;
+  background:linear-gradient(180deg,#2a2a2a,#1a1a1a); border-radius:0 6px 6px 0;
+  border:1px solid #000; border-left:none; display:flex; flex-direction:column;
+  padding:4px 2px; gap:3px; z-index:6; box-shadow:2px 0 8px rgba(0,0,0,.5);}
+.io-port{flex:1; background:linear-gradient(135deg,#3a3a3a,#0f0f0f); border-radius:2px;
+  border:1px solid #000; box-shadow:inset 0 1px 2px rgba(255,255,255,.1);}
+.vrm-bank{position:absolute; top:5%; left:20%; width:36%; height:4.5%; display:flex; gap:3px; z-index:4;}
+.vrm-block{flex:1; background:linear-gradient(180deg,#3a3a3a,#181818); border-radius:3px; border:1px solid #000;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.15), 0 2px 4px rgba(0,0,0,.6);}
+.mobo-cpu{position:absolute; top:12%; left:18%; width:40%; height:40%;
+  background:linear-gradient(135deg, rgba(40,20,20,.65), rgba(80,30,30,.35));
+  border:2px solid rgba(255,107,107,.55); border-radius:8px; padding:6px; z-index:8;
+  transition:all .35s ease;
+  box-shadow:inset 0 0 24px rgba(255,107,107,.12), 0 4px 14px rgba(0,0,0,.5);}
+.mobo-cpu .socket-label{position:absolute; top:-10px; left:10px; background:#0a1a12; color:#ff6b6b;
+  font-size:clamp(.5rem,1.1vw,.7rem); font-weight:700; padding:1px 8px; border-radius:6px;
+  letter-spacing:1.5px; border:1px solid rgba(255,107,107,.5); z-index:2;}
+.mobo-cpu::before{content:''; position:absolute; inset:6px;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,200,100,.10) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(255,200,100,.10) 0 1px, transparent 1px 7px);
+  border-radius:5px; pointer-events:none;}
+.cpu-blocks{position:relative; width:100%; height:100%;
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:5px; z-index:3;}
+.cpu-block{border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-weight:700; color:#fff; font-size:clamp(.55rem,1.2vw,.8rem); letter-spacing:.5px;
+  border:1.5px solid rgba(255,255,255,.15); transition:all .3s ease;
+  position:relative; overflow:hidden;}
+.cpu-block span{font-size:clamp(.85rem,1.9vw,1.2rem); line-height:1; margin-bottom:1px;}
+.cpu-block b{font-size:clamp(.55rem,1.1vw,.72rem); letter-spacing:1px;}
+.cpu-block.block-uc{grid-column:1 / 2; grid-row:1 / 2;
+  background:linear-gradient(135deg, rgba(160,108,213,.35), rgba(160,108,213,.12));
+  border-color:rgba(160,108,213,.6);}
+.cpu-block.block-alu{grid-column:2 / 3; grid-row:1 / 2;
+  background:linear-gradient(135deg, rgba(78,205,196,.35), rgba(78,205,196,.12));
+  border-color:rgba(78,205,196,.6);}
+.cpu-block.block-reg{grid-column:1 / 3; grid-row:2 / 3;
+  background:linear-gradient(135deg, rgba(255,230,109,.30), rgba(255,230,109,.10));
+  border-color:rgba(255,230,109,.55);}
+.cpu-block.active{box-shadow:0 0 22px currentColor, inset 0 0 16px rgba(255,255,255,.25); transform:scale(1.05);}
+.cpu-block.block-uc.active{color:#c8a4ff;}
+.cpu-block.block-alu.active{color:#7dfff0;}
+.cpu-block.block-reg.active{color:#fff5b8;}
+.mobo-ram{position:absolute; top:10%; right:3.5%; width:19%; height:52%;
+  background:linear-gradient(135deg, rgba(60,60,15,.5), rgba(80,80,20,.25));
+  border:2px solid rgba(255,230,109,.5); border-radius:8px; padding:6px 5px; z-index:8;
+  display:flex; flex-direction:column; transition:all .35s ease;
+  box-shadow:inset 0 0 24px rgba(255,230,109,.10), 0 4px 14px rgba(0,0,0,.5);}
+.mobo-ram .socket-label{position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+  background:#0a1a12; color:#ffe66d; font-size:clamp(.5rem,1.1vw,.7rem); font-weight:700;
+  padding:1px 8px; border-radius:6px; letter-spacing:1.5px;
+  border:1px solid rgba(255,230,109,.5); white-space:nowrap; z-index:2;}
+.ram-slots{display:flex; flex-direction:column; gap:4px; flex:1;}
+.ram-slot{flex:1; background:linear-gradient(90deg, #0a0a0a, #1f1f1f 50%, #0a0a0a);
+  border-radius:4px; border:1px solid #000;
+  box-shadow:inset 0 0 8px rgba(0,0,0,.9), 0 1px 2px rgba(255,255,255,.04);
+  position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;}
+.ram-slot::before{content:''; position:absolute; inset:2px;
+  background:repeating-linear-gradient(90deg, rgba(255,230,109,.20) 0 1px, transparent 1px 5px);
+  border-radius:2px; z-index:0;}
+.ram-value{position:relative; z-index:2; font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.6rem,1.35vw,.85rem); color:#ffe66d; text-shadow:0 0 8px rgba(255,230,109,.8);
+  transition:all .3s ease;}
+.ram-value.inst{color:#c8a4ff; text-shadow:0 0 8px rgba(160,108,213,.9); font-size:clamp(.5rem,1.1vw,.7rem);}
+.ram-value.hidden{opacity:.15;}
+.ram-value.glow{animation:ramGlow 1.2s ease-in-out infinite alternate;}
+@keyframes ramGlow{from{filter:drop-shadow(0 0 2px currentColor);} to{filter:drop-shadow(0 0 12px currentColor); transform:scale(1.15);}}
+.mobo-ram.active{box-shadow:0 0 34px rgba(255,230,109,.85), inset 0 0 24px rgba(255,230,109,.25); border-color:#ffe66d; transform:scale(1.02);}
+.mobo-chipset{position:absolute; top:58%; left:22%; width:22%; height:18%;
+  background:linear-gradient(135deg, rgba(60,30,90,.7), rgba(40,20,60,.5));
+  border:2px solid rgba(160,108,213,.55); border-radius:8px; z-index:7;
+  display:flex; align-items:center; justify-content:center; transition:all .35s ease;
+  box-shadow:inset 0 0 24px rgba(160,108,213,.15), 0 4px 14px rgba(0,0,0,.5);}
+.mobo-chipset::before{content:''; position:absolute; inset:5px;
+  background:repeating-linear-gradient(0deg, rgba(160,108,213,.10) 0 1px, transparent 1px 8px);
+  border-radius:5px;}
+.chipset-inner{position:relative; z-index:2; text-align:center; font-weight:700; color:#d6bcff;
+  letter-spacing:1.5px; font-size:clamp(.5rem,1.1vw,.72rem);}
+.chipset-logo{font-size:clamp(1rem,2.2vw,1.5rem); margin-bottom:2px; filter:drop-shadow(0 0 8px rgba(160,108,213,.9));}
+.mobo-chipset .socket-label{position:absolute; top:-10px; left:8px; background:#0a1a12; color:#a06cd5;
+  font-size:clamp(.5rem,1.1vw,.7rem); font-weight:700; padding:1px 8px; border-radius:6px;
+  letter-spacing:1.5px; border:1px solid rgba(160,108,213,.5);}
+.mobo-chipset.active{box-shadow:0 0 34px rgba(160,108,213,.9), inset 0 0 24px rgba(160,108,213,.3); border-color:#a06cd5; transform:scale(1.04);}
+.mobo-pcie{position:absolute; bottom:14%; left:8%; width:48%; height:8%;
+  background:linear-gradient(180deg, rgba(30,90,90,.35), rgba(15,45,45,.55));
+  border:2px solid rgba(78,205,196,.5); border-radius:6px; padding:0 8px; z-index:6;
+  display:flex; align-items:center; transition:all .35s ease;
+  box-shadow:inset 0 0 18px rgba(78,205,196,.12), 0 3px 10px rgba(0,0,0,.5);}
+.mobo-pcie::before{content:''; position:absolute; left:6px; right:6px; top:50%; transform:translateY(-50%);
+  height:60%; background:repeating-linear-gradient(90deg, rgba(200,200,200,.20) 0 2px, transparent 2px 5px);
+  border-radius:2px;}
+.mobo-pcie .pcie-label{position:relative; z-index:2; font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.5rem,1.1vw,.7rem); color:#7dfff0; letter-spacing:1.5px;
+  background:rgba(0,0,0,.6); padding:2px 8px; border-radius:4px; margin-left:auto;
+  border:1px solid rgba(78,205,196,.4);}
+.mobo-pcie.active{box-shadow:0 0 30px rgba(78,205,196,.85), inset 0 0 18px rgba(78,205,196,.3); border-color:#4ecdc4;}
+.gpu-chip{position:absolute; bottom:24%; left:10%; width:16%; height:11%;
+  background:linear-gradient(135deg, rgba(78,205,196,.35), rgba(94,231,223,.15));
+  border:2px solid rgba(78,205,196,.7); border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:7; font-family:'Fredoka',sans-serif; font-weight:700; color:#7dfff0;
+  letter-spacing:1.5px; font-size:clamp(.5rem,1.1vw,.72rem); transition:all .35s ease;
+  box-shadow:inset 0 0 18px rgba(78,205,196,.15), 0 4px 12px rgba(0,0,0,.5);}
+.gpu-chip .gpu-icon{font-size:clamp(.9rem,2vw,1.3rem); line-height:1;}
+.gpu-chip.active{box-shadow:0 0 32px rgba(78,205,196,.95), inset 0 0 20px rgba(78,205,196,.35); border-color:#5ee7df; transform:scale(1.06);}
+.sata-ports{position:absolute; bottom:12%; right:3.5%; width:19%; height:16%;
+  background:linear-gradient(135deg, rgba(60,20,30,.55), rgba(40,10,20,.4));
+  border:1.5px solid rgba(255,107,107,.4); border-radius:8px; padding:5px; z-index:5;
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:4px;}
+.sata-port{background:linear-gradient(180deg,#1a1a1a,#0a0a0a); border-radius:3px; border:1px solid #000;
+  position:relative; box-shadow:inset 0 1px 2px rgba(255,255,255,.08);}
+.sata-port::before{content:''; position:absolute; left:15%; top:30%; width:70%; height:40%;
+  background:repeating-linear-gradient(90deg, rgba(200,200,200,.15) 0 1px, transparent 1px 3px); border-radius:2px;}
+.sata-label{position:absolute; top:-9px; left:8px; background:#0a1a12; color:#ff8f8f;
+  font-size:clamp(.45rem,1vw,.62rem); font-weight:700; padding:1px 6px; border-radius:5px;
+  letter-spacing:1.2px; border:1px solid rgba(255,107,107,.4); font-family:'Fredoka',sans-serif;}
+.atx-power{position:absolute; right:0; top:22%; width:2%; height:16%;
+  background:linear-gradient(90deg,#3a3a3a,#1a1a1a); border-radius:5px 0 0 5px;
+  border:1px solid #000; border-right:none; z-index:5;
+  box-shadow:-2px 0 8px rgba(0,0,0,.5); display:flex; flex-direction:column; padding:3px 2px; gap:2px;}
+.atx-power::before, .atx-power::after{content:''; flex:1;
+  background:repeating-linear-gradient(0deg, #222 0 2px, #444 2px 3px); border-radius:2px;}
+.eps-power{position:absolute; top:0; left:22%; width:6%; height:2.5%;
+  background:linear-gradient(180deg,#3a3a3a,#1a1a1a); border-radius:0 0 5px 5px;
+  border:1px solid #000; border-top:none; z-index:5; box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.cap{position:absolute; width:clamp(7px,1.1vw,12px); height:clamp(7px,1.1vw,12px); border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #4a4a4a, #0a0a0a 70%);
+  border:1px solid #000; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,.7);}
+.cap.c1{top:8%; left:6%;} .cap.c2{top:8%; left:9%;}
+.cap.c3{top:56%; left:6%;} .cap.c4{top:56%; left:9%;}
+.cap.c5{top:8%; left:14%;} .cap.c6{top:56%; left:14%;}
+.mobo-led{position:absolute; bottom:14px; right:18px; width:8px; height:8px; border-radius:50%;
+  background:#25D366; box-shadow:0 0 12px #25D366, 0 0 24px rgba(37,211,102,.7); z-index:5;
+  animation:ledBlink 1.6s ease-in-out infinite;}
+@keyframes ledBlink{0%,100%{opacity:1; box-shadow:0 0 12px #25D366;} 50%{opacity:.5; box-shadow:0 0 6px #25D366;}}
+.traces-layer{position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden;}
+.traces-layer svg{width:100%; height:100%; display:block;}
+.trace{fill:none; stroke:rgba(30,140,80,.5); stroke-width:2.5; stroke-linecap:round;
+  filter:drop-shadow(0 0 2px rgba(78,205,196,.25)); transition:stroke .3s ease, stroke-width .3s ease;}
+.trace.active{stroke:rgba(94,231,223,.95); stroke-width:3.2; filter:drop-shadow(0 0 6px rgba(94,231,223,.9));}
+.particles-layer{position:absolute; inset:0; z-index:15; pointer-events:none;}
+.particle{position:absolute; width:16px; height:16px; border-radius:50%; z-index:20;
+  pointer-events:none; opacity:0; transform:translate(-50%,-50%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fredoka',sans-serif; font-weight:700; font-size:10px; color:#000;}
+.particle.inst{background:radial-gradient(circle at 35% 35%, #d9b3ff, #a06cd5 65%); box-shadow:0 0 14px #a06cd5, 0 0 28px rgba(160,108,213,.7);}
+.particle.data{background:radial-gradient(circle at 35% 35%, #fff5b8, #ffe66d 65%); box-shadow:0 0 14px #ffe66d, 0 0 28px rgba(255,230,109,.7);}
+.particle.res{background:radial-gradient(circle at 35% 35%, #b8fff4, #4ecdc4 65%); box-shadow:0 0 14px #4ecdc4, 0 0 28px rgba(78,205,196,.7);}
+.particle.ctrl{background:radial-gradient(circle at 35% 35%, #ffc8c8, #ff6b6b 65%); box-shadow:0 0 14px #ff6b6b, 0 0 28px rgba(255,107,107,.7);}
+.particle.large{width:24px; height:24px; font-size:13px;}
+.monitor-frame{width:100%; max-width:200px; aspect-ratio: 16 / 10;
+  background:linear-gradient(135deg, #1a1a1a, #0a0a0a); border:3px solid #2a2a2a;
+  border-radius:8px; padding:5px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6), inset 0 0 10px rgba(0,0,0,.8), 0 0 24px rgba(78,205,196,.15);
+  position:relative;}
+.monitor-frame::after{content:''; position:absolute; bottom:-3px; left:50%; transform:translateX(-50%);
+  width:24%; height:3px; background:#1a1a1a; border-radius:2px;}
+.monitor-screen{width:100%; height:100%;
+  background:radial-gradient(circle at 50% 50%, #05111a 0%, #000 100%);
+  border-radius:3px; display:flex; align-items:center; justify-content:center;
+  transition:background .5s ease, box-shadow .5s ease; position:relative; overflow:hidden;}
+.monitor-screen.on{background:radial-gradient(circle at 50% 50%, #062b3a 0%, #000 100%); box-shadow:inset 0 0 20px rgba(78,205,196,.35);}
+.monitor-screen::before{content:''; position:absolute; inset:0;
+  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px);
+  pointer-events:none; z-index:3;}
+.screen-content{position:relative; z-index:2; font-family:'Fredoka',sans-serif; font-weight:700;
+  color:#5ee7df; font-size:clamp(.9rem,2.2vw,1.5rem); letter-spacing:2px;
+  text-shadow:0 0 12px currentColor, 0 0 24px rgba(94,231,223,.5);
+  opacity:.15; transition:opacity .4s ease; display:flex; gap:.25em; align-items:center; white-space:nowrap;}
+.monitor-screen.on .screen-content{opacity:1;}
+.screen-content .tok{opacity:0; transform:translateY(6px); transition:all .4s ease;}
+.screen-content .tok.show{opacity:1; transform:translateY(0);}
+.screen-idle{position:absolute; font-family:'Fredoka',sans-serif;
+  color:rgba(94,231,223,.25); font-size:clamp(.55rem,1.3vw,.8rem); letter-spacing:2px;
+  transition:opacity .4s ease;}
+.monitor-screen.on .screen-idle{opacity:0;}
+.monitor-base{width:36%; height:8px; background:linear-gradient(180deg,#1a1a1a,#0a0a0a);
+  border-radius:0 0 6px 6px; margin-top:-1px; box-shadow:0 4px 10px rgba(0,0,0,.6);}
+.monitor-foot{width:52%; height:4px; background:linear-gradient(180deg,#2a2a2a,#0a0a0a);
+  border-radius:4px; margin-top:0; box-shadow:0 6px 12px rgba(0,0,0,.5);}
+.monitor-label{margin-top:.55rem; font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.55rem,1.2vw,.72rem); letter-spacing:2px; color:rgba(94,231,223,.65); text-align:center;}
+.hdmi-cable{position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+  width:2px; height:22px; background:linear-gradient(180deg, rgba(94,231,223,.15), rgba(94,231,223,.5));
+  box-shadow:0 0 8px rgba(94,231,223,.4); border-radius:2px;}
+.vn-controls{display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; margin-top:.9rem;}
+.vn-btn{font-family:'Fredoka',sans-serif; font-size:clamp(.78rem,1.7vw,.95rem); font-weight:700;
+  padding:.6rem 1.3rem; border-radius:999px; border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08); color:#fff; cursor:pointer; transition:.25s;}
+.vn-btn:hover{ background:rgba(78,205,196,.3); border-color:#4ecdc4; transform:translateY(-2px);}
+.vn-btn.primary{background:linear-gradient(135deg,#4ecdc4,#a06cd5); border:none; box-shadow:0 8px 22px rgba(78,205,196,.35);}
+.vn-btn.primary:hover{ transform:translateY(-3px) scale(1.04); box-shadow:0 12px 30px rgba(78,205,196,.6); }
+.cycle-steps{display:flex; gap:.45rem; flex-wrap:wrap; justify-content:center; margin-top:.9rem; max-width:1000px;}
+.step{font-family:'Fredoka',sans-serif; font-size:clamp(.62rem,1.3vw,.78rem); font-weight:700;
+  padding:.45rem .85rem; border-radius:12px; background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.15); color:rgba(255,255,255,.7); transition:all .3s ease;}
+.step.active{background:linear-gradient(135deg,rgba(78,205,196,.35),rgba(160,108,213,.25));
+  border-color:#4ecdc4; color:#fff; box-shadow:0 0 22px rgba(78,205,196,.55); transform:scale(1.08);}
+.legend{display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; margin-top:.7rem;
+  font-size:clamp(.6rem,1.25vw,.76rem); color:rgba(255,255,255,.75);}
+.legend-item{display:flex; align-items:center; gap:.35rem; background:rgba(255,255,255,.05);
+  padding:3px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12);}
+.legend-dot{width:10px; height:10px; border-radius:50%; box-shadow:0 0 8px currentColor;}
+.legend-dot.inst{background:#a06cd5; color:#a06cd5;}
+.legend-dot.data{background:#ffe66d; color:#ffe66d;}
+.legend-dot.res{background:#4ecdc4; color:#4ecdc4;}
+.legend-dot.ctrl{background:#ff6b6b; color:#ff6b6b;}
+.voice-btn{position:fixed; bottom:22px; right:88px; width:52px; height:52px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);
+  background:linear-gradient(135deg, rgba(78,205,196,.9), rgba(160,108,213,.9));
+  color:#fff; font-size:1.35rem; cursor:pointer; z-index:101;
+  display:grid; place-items:center;
+  box-shadow:0 8px 24px rgba(78,205,196,.5); transition:all .3s ease; backdrop-filter:blur(10px);}
+.voice-btn:hover{ transform:scale(1.12); box-shadow:0 12px 32px rgba(78,205,196,.8); }
+.voice-btn:active{ transform:scale(.95); }
+.voice-btn.off{background:linear-gradient(135deg, rgba(120,120,140,.55), rgba(60,60,80,.55));
+  box-shadow:0 6px 18px rgba(0,0,0,.4); color:rgba(255,255,255,.55);}
+.voice-btn.speaking{ animation:voicePulse 1.1s ease-in-out infinite; }
+@keyframes voicePulse{
+  0%,100%{ box-shadow:0 8px 24px rgba(78,205,196,.5); }
+  50%{ box-shadow:0 8px 36px rgba(78,205,196,1), 0 0 20px rgba(78,205,196,.7); }
+}
+.replay-btn{position:fixed; bottom:22px; right:150px; width:52px; height:52px; border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);
+  background:linear-gradient(135deg, rgba(255,230,109,.9), rgba(255,107,107,.9));
+  color:#0b0a1f; font-size:1.35rem; cursor:pointer; z-index:101;
+  display:grid; place-items:center;
+  box-shadow:0 8px 24px rgba(255,230,109,.45); transition:all .3s ease; backdrop-filter:blur(10px);}
+.replay-btn:hover{ transform:scale(1.12) rotate(-20deg); box-shadow:0 12px 32px rgba(255,230,109,.85); }
+.replay-btn:active{ transform:scale(.95); }
+.replay-btn.spinning{ animation:spinOnce .55s ease-in-out; }
+@keyframes spinOnce{
+  from{ transform:rotate(0deg) scale(1); }
+  50%{ transform:rotate(-180deg) scale(1.18); }
+  to{ transform:rotate(-360deg) scale(1); }
+}
+.teacher-btn{position:fixed; bottom:22px; right:212px; width:52px; height:52px; border-radius:50%;
+  border:2px solid rgba(255,107,107,.7);
+  background:linear-gradient(135deg, rgba(160,108,213,.95), rgba(255,107,107,.95));
+  color:#fff; font-size:1.35rem; cursor:pointer; z-index:101; display:none; place-items:center;
+  box-shadow:0 8px 24px rgba(160,108,213,.6); transition:all .3s ease; backdrop-filter:blur(10px);}
+.teacher-btn.show{ display:grid; }
+.teacher-btn:hover{ transform:scale(1.12) rotate(8deg); box-shadow:0 12px 32px rgba(160,108,213,.9); }
+.subtitle-bar{display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;}
+.form-wrap{display:flex; flex-direction:column; gap:.6rem; width:100%; max-width:520px; margin-top:1.1rem;}
+.exam-input{font-family:inherit; font-size:clamp(.9rem,1.8vw,1.05rem); padding:.8rem 1.1rem;
+  border-radius:14px; border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08); color:#fff; width:100%; text-align:center; transition:.2s;}
+.exam-input:focus{ outline:none; border-color:#4ecdc4; box-shadow:0 0 20px rgba(78,205,196,.35);}
+.exam-input::placeholder{color:rgba(255,255,255,.4);}
+.exam-input.filled{border-color:#25D366; box-shadow:0 0 16px rgba(37,211,102,.35);}
+.form-status{font-size:clamp(.75rem,1.6vw,.9rem); color:#ffe66d; font-weight:700;
+  min-height:1.3em; transition:.25s; text-align:center;}
+.form-status.ok{color:#25D366;}
+.form-status.warn{color:#ff6b6b;}
+.start-btn{margin-top:1rem; font-family:'Fredoka',sans-serif;
+  font-size:clamp(.95rem,2vw,1.15rem); font-weight:700;
+  padding:.85rem 2.2rem; border-radius:999px; border:none;
+  background:linear-gradient(135deg,#4ecdc4,#a06cd5); color:#fff;
+  cursor:not-allowed; opacity:.5; transition:all .3s ease;
+  box-shadow:0 8px 24px rgba(78,205,196,.3);}
+.start-btn.ready{cursor:pointer; opacity:1; box-shadow:0 12px 32px rgba(78,205,196,.6);
+  animation:pulseGlow 2.2s ease-in-out infinite;}
+.start-btn.ready:hover{ transform:translateY(-4px) scale(1.05); }
+.start-btn.ready:active{ transform:scale(.98); }
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 12px 32px rgba(78,205,196,.5);}
+  50%{box-shadow:0 12px 46px rgba(78,205,196,.9);}
+}
+.start-btn.locked{ animation:shake .5s; }
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-8px);}
+  40%{transform:translateX(8px);}
+  60%{transform:translateX(-5px);}
+  80%{transform:translateX(5px);}
+}
+.q-header{display:flex; align-items:center; justify-content:center; gap:.6rem; margin-bottom:.4rem; flex-wrap:wrap;}
+.q-num-badge{font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.75rem,1.6vw,.9rem); padding:4px 14px; border-radius:999px;
+  background:linear-gradient(135deg,#a06cd5,#ff6b6b); letter-spacing:1.2px;
+  box-shadow:0 6px 18px rgba(160,108,213,.4);}
+.q-points-badge{font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.7rem,1.5vw,.85rem); padding:4px 12px; border-radius:999px;
+  background:linear-gradient(135deg, rgba(255,230,109,.3), rgba(78,205,196,.25));
+  border:1px solid rgba(255,230,109,.6); color:#ffe66d; letter-spacing:1.2px;
+  box-shadow:0 6px 18px rgba(255,230,109,.3);}
+.q-text{font-family:'Fredoka',sans-serif; font-size:clamp(1.05rem,2.6vw,1.7rem);
+  font-weight:700; margin:1rem 0 1.4rem; max-width:900px; line-height:1.35; color:#fff;}
+.q-text .hl{background:linear-gradient(135deg,#ffe66d,#4ecdc4);
+  -webkit-background-clip:text; background-clip:text; color:transparent;}
+.answers{display:grid; grid-template-columns:1fr 1fr; gap:.9rem; width:100%; max-width:780px;}
+.answer{font-family:'Nunito',sans-serif; font-size:clamp(.85rem,1.8vw,1rem);
+  font-weight:700; padding:.95rem 1.05rem; border-radius:16px;
+  border:2px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
+  color:#fff; cursor:pointer; transition:all .25s ease;
+  backdrop-filter:blur(8px); display:flex; align-items:center; gap:.7rem; text-align:left;}
+.answer .letter{flex-shrink:0; width:30px; height:30px; border-radius:50%;
+  background:rgba(255,255,255,.15); display:grid; place-items:center;
+  font-family:'Fredoka',sans-serif; font-size:.95em; transition:.25s;}
+.answer:hover:not(:disabled){background:rgba(78,205,196,.18); border-color:#4ecdc4; transform:translateY(-3px);}
+.answer:hover:not(:disabled) .letter{ background:#4ecdc4; color:#0b0a1f; }
+.answer.selected{background:linear-gradient(135deg,rgba(160,108,213,.45),rgba(78,205,196,.35));
+  border-color:#a06cd5; box-shadow:0 10px 30px rgba(160,108,213,.5); transform:translateY(-2px);}
+.answer.selected .letter{background:#a06cd5; color:#fff; box-shadow:0 0 14px rgba(160,108,213,.9);}
+.answer:disabled{ cursor:default; opacity:.85; }
+.answer-hint{margin-top:1.2rem; font-size:clamp(.75rem,1.5vw,.88rem);
+  font-weight:700; color:#ffe66d; min-height:1.4em; transition:.25s;}
+.answer-hint.ready{ color:#25D366; }
+@media(max-width:640px){ .answers{grid-template-columns:1fr;} }
+.score-display{margin:.6rem 0 1rem; text-align:center;}
+.score-big{font-family:'Fredoka',sans-serif;
+  font-size:clamp(3.2rem,11vw,6.5rem); font-weight:700;
+  background:linear-gradient(135deg,#ffe66d,#ff6b6b,#a06cd5);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 0 24px rgba(255,230,109,.4)); line-height:1;}
+.score-big .score-unit{font-size:.4em; color:rgba(255,255,255,.6);
+  -webkit-text-fill-color:rgba(255,255,255,.6); margin-left:.15em; letter-spacing:2px;}
+.score-sub{font-size:clamp(.9rem,2vw,1.15rem); color:rgba(255,255,255,.7);
+  margin-top:.2rem; font-weight:700; letter-spacing:1px;}
+.score-msg{font-size:clamp(1rem,2.2vw,1.3rem); margin-top:.6rem;
+  color:rgba(255,255,255,.88); font-weight:700;}
+.wa-btn{display:inline-flex; align-items:center; gap:.7rem;
+  background:linear-gradient(135deg,var(--wa1),var(--wa2));
+  color:#fff; font-family:'Fredoka',sans-serif;
+  font-size:clamp(1rem,2.2vw,1.3rem); font-weight:700;
+  padding:1rem 2rem; border-radius:999px; border:none; cursor:pointer;
+  text-decoration:none; transition:transform .25s, box-shadow .25s;
+  box-shadow:0 10px 30px rgba(37,211,102,.4); margin-top:1.2rem;}
+.wa-btn:hover{ transform:translateY(-4px) scale(1.04); box-shadow:0 14px 42px rgba(37,211,102,.65);}
+.wa-btn:active{transform:scale(.98);}
+.wa-btn:disabled{ opacity:.6; cursor:not-allowed; }
+.wa-btn .wa-icon{font-size:1.3em; line-height:1;}
+.token-preview{margin-top:1.1rem; padding:.7rem 1.2rem; border-radius:12px;
+  background:linear-gradient(135deg, rgba(160,108,213,.18), rgba(78,205,196,.12));
+  border:1px dashed rgba(160,108,213,.55);
+  font-family:'Courier New',monospace; font-size:clamp(.72rem,1.55vw,.9rem);
+  color:#d6bcff; letter-spacing:1.5px; max-width:520px; text-align:center;
+  word-break:break-all;}
+.token-preview b{display:block; font-family:'Fredoka',sans-serif;
+  font-size:clamp(.65rem,1.4vw,.8rem); color:#ffe66d;
+  letter-spacing:2px; margin-bottom:.35rem; text-transform:uppercase;}
+.token-preview .token-value{
+  display:block; font-size:clamp(.68rem,1.4vw,.82rem);
+  color:#d6bcff; line-height:1.4; padding:.3rem 0;
+  max-height:5em; overflow-y:auto;
+}
+.token-short{color:#7dffcf !important;}
+.token-encrypted{color:#ffd6a5 !important; font-size:clamp(.6rem,1.2vw,.75rem) !important;}
+.dots{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:100;}
+.dot{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.25);
+  border:none; padding:0; cursor:pointer; transition:.35s cubic-bezier(.34,1.4,.64,1);}
+.dot:hover:not(:disabled){background:rgba(255,255,255,.55);}
+.dot.active{width:28px; border-radius:6px; background:#4ecdc4; box-shadow:0 0 14px #4ecdc4;}
+.dot:disabled{opacity:.2; cursor:not-allowed;}
+.dot.exam-dot{ background:rgba(255,230,109,.35); }
+.dot.exam-dot.active{ background:#ffe66d; box-shadow:0 0 14px #ffe66d; }
+.controls{position:fixed; bottom:16px; right:22px; display:flex; gap:10px; z-index:100;}
+.nav-btn{width:48px; height:48px; border-radius:50%; border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08); color:#fff; font-size:1.1rem; cursor:pointer;
+  backdrop-filter:blur(10px); transition:.25s; display:grid; place-items:center;}
+.nav-btn:hover:not(:disabled){background:rgba(78,205,196,.35); transform:scale(1.12); border-color:#4ecdc4;}
+.nav-btn:disabled{opacity:.25; cursor:not-allowed;}
+.nav-btn.locked{animation:shake .5s;}
+.confetti{position:fixed; top:-24px; width:10px; height:16px; z-index:999;
+  pointer-events:none; border-radius:2px; animation:fall linear forwards;}
+@keyframes fall{ to{transform:translateY(108vh) rotate(760deg); opacity:.85;} }
+.verify-overlay{position:fixed; inset:0; background:rgba(5,5,20,.92);
+  backdrop-filter:blur(10px); z-index:5000; display:none;
+  align-items:center; justify-content:center; padding:2rem 1rem; overflow-y:auto;}
+.verify-overlay.show{ display:flex; }
+.verify-panel{width:100%; max-width:820px;
+  background:linear-gradient(135deg, rgba(20,15,45,.98), rgba(10,10,30,.98));
+  border:2px solid rgba(160,108,213,.6); border-radius:24px; padding:1.6rem;
+  box-shadow:0 30px 90px rgba(0,0,0,.8), 0 0 60px rgba(160,108,213,.25),
+    inset 0 0 40px rgba(160,108,213,.05);
+  position:relative; max-height:92vh; overflow-y:auto;}
+.verify-panel::-webkit-scrollbar{ width:8px; }
+.verify-panel::-webkit-scrollbar-thumb{ background:rgba(160,108,213,.5); border-radius:4px;}
+.verify-header{display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1rem; padding-bottom:1rem;
+  border-bottom:1px solid rgba(255,255,255,.1); gap:1rem; flex-wrap:wrap;}
+.verify-title{font-family:'Fredoka',sans-serif;
+  font-size:clamp(1.1rem,2.4vw,1.5rem); font-weight:700;
+  background:linear-gradient(135deg,#ffe66d,#ff6b6b,#a06cd5);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  display:flex; align-items:center; gap:.6rem;}
+.verify-close{background:rgba(255,107,107,.15);
+  border:1px solid rgba(255,107,107,.5); color:#ff8f8f;
+  width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:1.1rem;
+  display:grid; place-items:center; transition:.25s; flex-shrink:0;}
+.verify-close:hover{ background:rgba(255,107,107,.35); transform:rotate(90deg); }
+.verify-intro{font-size:clamp(.82rem,1.7vw,.95rem);
+  color:rgba(255,255,255,.75); margin-bottom:1rem; line-height:1.5;}
+.verify-intro b{ color:#ffe66d; }
+.verify-textarea{width:100%; min-height:180px; padding:1rem;
+  border-radius:14px; border:2px solid rgba(255,255,255,.18);
+  background:rgba(0,0,0,.45); color:#fff;
+  font-family:'Courier New',monospace; font-size:clamp(.78rem,1.6vw,.9rem);
+  line-height:1.5; resize:vertical; transition:.25s;}
+.verify-textarea:focus{outline:none; border-color:#a06cd5;
+  box-shadow:0 0 22px rgba(160,108,213,.4);}
+.verify-textarea::placeholder{ color:rgba(255,255,255,.3); }
+.verify-actions{ display:flex; gap:.7rem; flex-wrap:wrap; margin-top:1rem; }
+.verify-btn{font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.82rem,1.8vw,1rem); padding:.75rem 1.5rem;
+  border-radius:999px; border:none; cursor:pointer; transition:.25s;
+  display:inline-flex; align-items:center; gap:.5rem;}
+.verify-btn.primary{background:linear-gradient(135deg,#4ecdc4,#a06cd5);
+  color:#fff; box-shadow:0 8px 22px rgba(78,205,196,.4);}
+.verify-btn.primary:hover{ transform:translateY(-3px) scale(1.03); box-shadow:0 12px 30px rgba(78,205,196,.7); }
+.verify-btn.ghost{background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2); color:#fff;}
+.verify-btn.ghost:hover{ background:rgba(255,255,255,.15); }
+.verify-result{margin-top:1.2rem; padding:1rem 1.3rem;
+  border-radius:14px; font-family:'Nunito',sans-serif;
+  font-size:clamp(.85rem,1.7vw,1rem); display:none; line-height:1.5;}
+.verify-result.show{ display:block; animation:popIn .4s ease; }
+.verify-result.ok{background:linear-gradient(135deg, rgba(37,211,102,.2), rgba(78,205,196,.15));
+  border:2px solid #25D366; color:#7dffcf; box-shadow:0 0 30px rgba(37,211,102,.35);}
+.verify-result.fail{background:linear-gradient(135deg, rgba(255,107,107,.2), rgba(160,108,213,.15));
+  border:2px solid #ff6b6b; color:#ffb0b0; box-shadow:0 0 30px rgba(255,107,107,.35);}
+.verify-result.warn{background:linear-gradient(135deg, rgba(255,230,109,.15), rgba(160,108,213,.12));
+  border:2px solid #ffe66d; color:#ffe66d;}
+.verify-result .result-title{font-family:'Fredoka',sans-serif;
+  font-size:clamp(1rem,2.2vw,1.3rem); font-weight:700; margin-bottom:.6rem;
+  display:flex; align-items:center; gap:.5rem;}
+.verify-result .result-data{font-family:'Courier New',monospace;
+  font-size:clamp(.72rem,1.5vw,.85rem); background:rgba(0,0,0,.4);
+  padding:.7rem .9rem; border-radius:8px; margin-top:.6rem;
+  white-space:pre-line; color:rgba(255,255,255,.9);
+  border-left:3px solid rgba(255,255,255,.2);}
+.verify-result .result-data b{ color:#ffe66d; }
+.verify-result .result-data .yes{ color:#7dffcf; }
+.verify-result .result-data .no{ color:#ff8f8f; }
+.verify-footer{margin-top:1.2rem; padding-top:.9rem;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:clamp(.68rem,1.4vw,.8rem); color:rgba(255,255,255,.5);
+  text-align:center; line-height:1.5;}
+.verify-footer b{ color:rgba(255,230,109,.8); }
+.timer-display{position:fixed; top:58px; left:50%; transform:translateX(-50%);
+  font-family:'Fredoka',sans-serif; font-weight:700;
+  font-size:clamp(.95rem,2.2vw,1.3rem); padding:.5rem 1.3rem; border-radius:999px;
+  background:linear-gradient(135deg, rgba(78,205,196,.25), rgba(160,108,213,.25));
+  border:2px solid rgba(78,205,196,.6); color:#5ee7df; letter-spacing:2px;
+  display:none; align-items:center; gap:.5rem;
+  box-shadow:0 6px 22px rgba(0,0,0,.4), 0 0 18px rgba(78,205,196,.3);
+  z-index:98; backdrop-filter:blur(10px); transition:all .35s ease;
+  white-space:nowrap; overflow:hidden;}
+.timer-display.show{ display:flex; }
+.timer-display .timer-icon{ font-size:1.15em; }
+.timer-display .timer-value{font-variant-numeric:tabular-nums; min-width:3.4em; text-align:center;}
+.timer-display .timer-bar{position:absolute; bottom:0; left:0; height:3px;
+  background:currentColor; border-radius:0 0 999px 999px;
+  transition:width 1s linear, background .3s ease; box-shadow:0 0 10px currentColor;}
+.timer-display.warn{background:linear-gradient(135deg, rgba(255,230,109,.25), rgba(255,107,107,.2));
+  border-color:rgba(255,230,109,.7); color:#ffe66d;
+  box-shadow:0 6px 22px rgba(0,0,0,.4), 0 0 22px rgba(255,230,109,.55);}
+.timer-display.critical{background:linear-gradient(135deg, rgba(255,107,107,.35), rgba(160,108,213,.25));
+  border-color:#ff6b6b; color:#ff8f8f;
+  box-shadow:0 6px 22px rgba(0,0,0,.4), 0 0 26px rgba(255,107,107,.8);
+  animation:timerPulse .8s ease-in-out infinite;}
+@keyframes timerPulse{
+  0%,100%{ transform:translateX(-50%) scale(1); }
+  50%    { transform:translateX(-50%) scale(1.07); }
+}
+@media(max-width:960px){
+  .mobo-stage{grid-template-columns: 1fr; gap:12px;}
+  .monitor-col{padding-top:0; align-items:center; display:none;}
+}
+@media(max-width:640px){
+  .slide{padding:8vh 4vw 16vh;}
+  .controls{bottom:auto; top:14px; right:14px;}
+  .nav-btn{width:40px;height:40px;font-size:.95rem;}
+  .voice-btn{width:44px; height:44px; font-size:1.1rem; bottom:14px; right:74px;}
+  .replay-btn{width:44px; height:44px; font-size:1.1rem; bottom:14px; right:128px;}
+  .teacher-btn{width:44px; height:44px; font-size:1.1rem; bottom:14px; right:182px;}
+  .dots{bottom:22px; left:auto; right:14px; transform:none;}
+  .topbar{padding:0 14px; height:48px;}
+  .eval-title{font-size:.78rem;}
+  .counter{font-size:.68rem;}
+  .lock-badge{font-size:.6rem; padding:2px 6px;}
+  .brand{bottom:14px; left:12px; padding:4px 8px; border-radius:8px;}
+  .brand img{height:26px;}
+  .cover-title{font-size:clamp(1.8rem,10vw,3.2rem);}
+  .cpu-block b{display:none;}
+  .slide-footer{font-size:.55rem; letter-spacing:1px;}
+  .slide-footer::before, .slide-footer::after{width:14px;}
+  .verify-panel{padding:1.1rem;}
+  .timer-display{ top:52px; font-size:.82rem; padding:.35rem 1rem; letter-spacing:1px; }
+  .timer-display .timer-value{ min-width:3em; }
+  .specs-table{grid-template-columns: 1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="topbar">
+  <div class="eval-title">
+    <span class="dot-ev"></span>
+    EVALUACIÓN · x86-64
+  </div>
+  <div class="counter">
+    <span><b id="curNum">01</b> / <span id="totNum">19</span></span>
+    <span class="lock-badge" id="lockBadge">🔒 en curso</span>
+  </div>
+</div>
+
+<div class="timer-display" id="timerDisplay">
+  <span class="timer-icon">⏱️</span>
+  <span class="timer-value" id="timerValue">01:00</span>
+  <div class="timer-bar" id="timerBar" style="width:100%"></div>
+</div>
+
+<div class="brand" id="brandLogo">
+  <img src="logo-fundabit.png" alt="Fundabit · Isla de Coche"
+       onerror="document.getElementById('brandLogo').style.display='none'">
+</div>
+
+<div class="subtitle-bar" id="subtitleBar" aria-hidden="true"></div>
+
+<button class="replay-btn" id="replayBtn" title="Repetir explicación en voz">🔁</button>
+<button class="voice-btn" id="voiceBtn" title="Activar/desactivar voz">🔊</button>
+<button class="teacher-btn" id="teacherBtn" title="Verificador de notas (Profesor)">🔐</button>
+
+<div class="verify-overlay" id="verifyOverlay">
+  <div class="verify-panel">
+    <div class="verify-header">
+      <div class="verify-title">🔐 Verificador de Notas · Profesor</div>
+      <button class="verify-close" id="verifyClose" title="Cerrar">✕</button>
+    </div>
+    <p class="verify-intro">
+      Pega aquí el <b>mensaje completo de WhatsApp</b> que te envió el estudiante.<br>
+      El verificador extraerá los datos, descifrará el token AES-GCM y te dirá si el mensaje fue alterado.
+    </p>
+    <textarea class="verify-textarea" id="verifyText"
+              placeholder="Pega aquí el mensaje recibido por WhatsApp…"></textarea>
+    <div class="verify-actions">
+      <button class="verify-btn primary" id="verifyRun">🔍 Verificar mensaje</button>
+      <button class="verify-btn ghost" id="verifyClear">🗑️ Limpiar</button>
+      <button class="verify-btn ghost" id="verifyExample">📋 Ver ejemplo</button>
+    </div>
+    <div class="verify-result" id="verifyResult"></div>
+    <div class="verify-footer">
+      Fundabit Isla de Coche · <b>Prof. Luis Vásquez</b><br>
+      Sistema de verificación AES-GCM · v2.0
+    </div>
+  </div>
+</div>
+
+<div class="deck" id="deck">
+
+  <section class="slide">
+    <div class="anim" style="--d:.05s"><span class="badge">Fundabit Isla de Coche</span></div>
+    <h1 class="cover-title anim" style="--d:.15s">Arquitectura de<br><span class="grad">Escritorio x86-64</span></h1>
+    <p class="cover-sub anim" style="--d:.28s">🖥️ La PC moderna por dentro: la suma <b>2 + 2</b> paso a paso</p>
+    <div class="anim" style="--d:.38s">
+      <div class="prof-tag">
+        <span class="prof-icon">👨‍🏫</span>
+        <span>Prof. Luis Vásquez</span>
+      </div>
+    </div>
+    <div class="form-wrap anim" style="--d:.52s">
+      <input type="text" id="studentName" class="exam-input"
+             placeholder="✍️ Nombre y apellido" autocomplete="off">
+      <input type="text" id="studentCedula" class="exam-input"
+             placeholder="🆔 Cédula de identidad (6 a 10 dígitos)" autocomplete="off" inputmode="numeric">
+      <p class="form-status" id="formStatus">⚠️ Completa tus datos para comenzar</p>
+      <button class="start-btn" id="startBtn" disabled>🚀 Comenzar clase interactiva</button>
+    </div>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">🖥️ ¿Qué es la arquitectura x86-64?</h2>
+    <p class="lead anim" style="--d:.15s">Es la arquitectura que usan las <b>PC de escritorio y laptops</b> modernas. También se llama <b>AMD64</b> o <b>Intel 64</b>.</p>
+    <div class="cards">
+      <div class="card anim" style="--d:.30s"><div class="emoji">⚙️</div><h3>Procesadores</h3><p>Intel Core (i3, i5, i7, i9) y AMD Ryzen (3, 5, 7, 9).</p></div>
+      <div class="card anim" style="--d:.45s"><div class="emoji">6️⃣4️⃣</div><h3>64 bits</h3><p>Procesa datos de 64 bits y soporta hasta <b>16 EB de RAM</b> teóricos.</p></div>
+      <div class="card anim" style="--d:.60s"><div class="emoji">💻</div><h3>Compatibilidad</h3><p>Corre software de 32 y 64 bits. Domina el mercado de PC desde los 80.</p></div>
+    </div>
+    <p class="fact anim" style="--d:.75s">🌍 Más del <b>90% de las PC de escritorio</b> del mundo usan esta arquitectura.</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">🧩 Componentes de una PC x86-64</h2>
+    <p class="lead anim" style="--d:.15s">Una PC de escritorio moderna combina estas piezas clave:</p>
+    <div class="cards">
+      <div class="card anim" style="--d:.22s"><div class="emoji">🧠</div><h3>CPU multi-core</h3><p>4 a 24 núcleos (Intel Core / AMD Ryzen) con caché L1, L2 y L3.</p></div>
+      <div class="card anim" style="--d:.37s"><div class="emoji">💾</div><h3>RAM DDR4 / DDR5</h3><p>16 GB a 64 GB de memoria rápida para multitarea.</p></div>
+      <div class="card anim" style="--d:.52s"><div class="emoji">⚡</div><h3>SSD NVMe</h3><p>Almacenamiento ultrarrápido por PCIe (hasta 7,000 MB/s).</p></div>
+      <div class="card anim" style="--d:.67s"><div class="emoji">🎮</div><h3>GPU dedicada</h3><p>NVIDIA RTX / AMD Radeon por PCIe 4.0 o 5.0.</p></div>
+    </div>
+    <p class="fact anim" style="--d:.82s">🔗 Todos se conectan a través del <b>chipset</b> (Z690, B650, X670) en la placa base.</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">🔌 La placa base de una PC x86-64</h2>
+    <p class="lead anim" style="--d:.15s">Así se ve la motherboard real con sus componentes modernos:</p>
+    <div class="specs-table anim" style="--d:.30s">
+      <div class="k">🟥 CPU Socket</div>
+      <div class="v">LGA-1700 (Intel 12/13/14 gen) o <b>AM5</b> (AMD Ryzen 7000+)</div>
+      <div class="k">🟨 RAM DDR5</div>
+      <div class="v">4 bancos DIMM · hasta <b>192 GB</b> · 5600-8000 MHz</div>
+      <div class="k">🟦 PCIe 5.0 x16</div>
+      <div class="v">Slot para GPU de última generación (RTX 40, RX 7000)</div>
+      <div class="k">💚 M.2 NVMe</div>
+      <div class="v">SSD de hasta <b>7,000 MB/s</b> conectado directo a la CPU</div>
+      <div class="k">🟪 Chipset</div>
+      <div class="v">Z790, B650, X670 · conecta CPU, RAM, USB, SATA</div>
+    </div>
+    <p class="fact anim" style="--d:.80s">💡 Todo este hardware trabaja junto para ejecutar <b>Windows, Linux o macOS</b> en 64 bits.</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">🎬 Suma 2 + 2 dentro de una PC x86-64</h2>
+    <p class="lead anim" style="--d:.15s; font-size:clamp(.82rem,1.75vw,1.05rem)">
+      Pulsa <b>▶ Reproducir ciclo</b> y observa cómo viaja la información por la placa base.
+    </p>
+    <div class="mobo-stage anim" style="--d:.25s">
+      <div class="mobo-col">
+        <div class="mobo" id="mobo">
+          <div class="screw tl"></div><div class="screw tr"></div>
+          <div class="screw bl"></div><div class="screw br"></div>
+          <div class="screw tc"></div><div class="screw bc"></div>
+          <div class="io-panel"><div class="io-port"></div><div class="io-port"></div><div class="io-port"></div><div class="io-port"></div></div>
+          <div class="eps-power"></div>
+          <div class="vrm-bank">
+            <div class="vrm-block"></div><div class="vrm-block"></div><div class="vrm-block"></div><div class="vrm-block"></div>
+            <div class="vrm-block"></div><div class="vrm-block"></div><div class="vrm-block"></div><div class="vrm-block"></div>
+          </div>
+          <div class="cap c1"></div><div class="cap c2"></div><div class="cap c3"></div>
+          <div class="cap c4"></div><div class="cap c5"></div><div class="cap c6"></div>
+          <div class="traces-layer">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path class="trace" id="tr-cpu-ram-1" d="M58,28 L68,28 L68,22 L76,22" />
+              <path class="trace" id="tr-cpu-ram-2" d="M58,34 L70,34 L70,34 L76,34" />
+              <path class="trace" id="tr-cpu-ram-3" d="M58,40 L68,40 L68,48 L76,48" />
+              <path class="trace" id="tr-cpu-gpu"  d="M22,52 L22,64 L14,64 L14,66 L18,66" />
+              <path class="trace" id="tr-ram-gpu"  d="M76,55 L72,55 L72,72 L34,72" />
+              <path class="trace" id="tr-gpu-out"  d="M26,76 L26,96 L98,96 L98,98" />
+              <path class="trace" id="tr-cpu-chip-1" d="M36,52 L36,56 L33,56 L33,58" />
+              <path class="trace" id="tr-chip-ram" d="M44,66 L74,66 L74,64 L76,64" />
+            </svg>
+          </div>
+          <div class="mobo-cpu" id="moboCPU">
+            <div class="socket-label">CPU SOCKET · LGA-1700 x86-64</div>
+            <div class="cpu-blocks">
+              <div class="cpu-block block-uc" id="cpuUC"><span>🎛️</span><b>UC</b></div>
+              <div class="cpu-block block-alu" id="cpuALU"><span>➗</span><b>ALU</b></div>
+              <div class="cpu-block block-reg" id="cpuREG"><span>🧠</span><b>REG</b></div>
+            </div>
+          </div>
+          <div class="mobo-ram" id="moboRAM">
+            <div class="socket-label">DIMM · DDR5 · 5600 MHz</div>
+            <div class="ram-slots">
+              <div class="ram-slot"><span class="ram-value" id="ramVal1">2</span></div>
+              <div class="ram-slot"><span class="ram-value" id="ramVal2">2</span></div>
+              <div class="ram-slot"><span class="ram-value inst" id="ramVal3">SUMA</span></div>
+              <div class="ram-slot"><span class="ram-value hidden" id="ramVal4">4</span></div>
+            </div>
+          </div>
+          <div class="mobo-chipset" id="moboChipset">
+            <div class="socket-label">CHIPSET Z790</div>
+            <div class="chipset-inner"><div class="chipset-logo">◈</div>Z-FUNDABIT</div>
+          </div>
+          <div class="gpu-chip" id="gpuChip"><span class="gpu-icon">🎮</span><span>GPU</span></div>
+          <div class="mobo-pcie" id="moboPCIe"><span class="pcie-label">PCIe 5.0 x16</span></div>
+          <div class="sata-ports">
+            <div class="sata-label">M.2 / SATA</div>
+            <div class="sata-port"></div><div class="sata-port"></div>
+            <div class="sata-port"></div><div class="sata-port"></div>
+          </div>
+          <div class="atx-power"></div>
+          <div class="mobo-led"></div>
+          <div class="particles-layer" id="particlesLayer"></div>
+          <div class="mobo-brand">MOTHERBOARD · <b>FUNDABIT Z790</b> · x86-64</div>
+        </div>
+      </div>
+      <div class="monitor-col">
+        <div style="position:relative; width:100%; display:flex; justify-content:center;">
+          <div class="hdmi-cable"></div>
+        </div>
+        <div class="monitor-frame">
+          <div class="monitor-screen" id="monitorScreen">
+            <span class="screen-idle" id="screenIdle">— apagado —</span>
+            <div class="screen-content" id="screenContent">
+              <span class="tok" data-tok="1">2</span>
+              <span class="tok" data-tok="2">+</span>
+              <span class="tok" data-tok="3">2</span>
+              <span class="tok" data-tok="4">=</span>
+              <span class="tok" data-tok="5">4</span>
+            </div>
+          </div>
+        </div>
+        <div class="monitor-base"></div>
+        <div class="monitor-foot"></div>
+        <div class="monitor-label">MONITOR · HDMI · 4K</div>
+      </div>
+    </div>
+    <div class="cycle-steps anim" style="--d:.35s">
+      <div class="step" data-step="1">1️⃣ BUSCAR · RAM → CPU</div>
+      <div class="step" data-step="2">2️⃣ DECODIFICAR · UC → REG</div>
+      <div class="step" data-step="3">3️⃣ EJECUTAR · REG → ALU</div>
+      <div class="step" data-step="4">4️⃣ GUARDAR · ALU → REG → RAM</div>
+      <div class="step" data-step="5">5️⃣ MOSTRAR · RAM → GPU → MONITOR</div>
+    </div>
+    <div class="vn-controls anim" style="--d:.45s">
+      <button class="vn-btn primary" id="playBtn">▶ Reproducir ciclo</button>
+      <button class="vn-btn" id="resetBtn">↺ Reiniciar</button>
+    </div>
+    <div class="legend anim" style="--d:.55s">
+      <div class="legend-item"><span class="legend-dot inst"></span> Instrucción</div>
+      <div class="legend-item"><span class="legend-dot data"></span> Dato (número)</div>
+      <div class="legend-item"><span class="legend-dot res"></span> Resultado</div>
+      <div class="legend-item"><span class="legend-dot ctrl"></span> Control</div>
+    </div>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">⚙️ El ciclo dentro de una CPU x86-64</h2>
+    <div class="cards">
+      <div class="card anim" style="--d:.18s"><div class="emoji">1️⃣</div><h3>BUSCAR</h3><p>La <b>UC</b> trae desde la RAM la instrucción <b>SUMA</b> y los datos <b>2</b> y <b>2</b>.</p></div>
+      <div class="card anim" style="--d:.33s"><div class="emoji">2️⃣</div><h3>DECODIFICAR</h3><p>La <b>UC</b> interpreta el código de máquina x86 y coloca los operandos en los <b>registros RAX, RBX</b>.</p></div>
+      <div class="card anim" style="--d:.48s"><div class="emoji">3️⃣</div><h3>EJECUTAR</h3><p>La <b>ALU</b> suma 2+2 y guarda el <b>4</b> en un registro de 64 bits.</p></div>
+      <div class="card anim" style="--d:.63s"><div class="emoji">4️⃣</div><h3>GUARDAR</h3><p>El resultado se escribe de vuelta en la <b>RAM DDR5</b> por el bus de memoria.</p></div>
+      <div class="card anim" style="--d:.78s"><div class="emoji">5️⃣</div><h3>MOSTRAR</h3><p>La <b>GPU</b> lee el valor y lo dibuja en el monitor por <b>HDMI / DisplayPort</b>.</p></div>
+    </div>
+    <p class="fact anim" style="--d:.90s">⚡ Una CPU x86-64 moderna ejecuta miles de millones de ciclos por segundo usando <b>pipeline</b> y <b>hyper-threading</b>.</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <h2 class="anim" style="--d:.05s">🚀 Características de una PC x86-64 moderna</h2>
+    <div class="cards">
+      <div class="card anim" style="--d:.20s"><div class="emoji">🧠</div><h3>Multi-core</h3><p>Varios núcleos trabajando en paralelo. Ej: Ryzen 9 tiene <b>16 núcleos / 32 hilos</b>.</p></div>
+      <div class="card anim" style="--d:.35s"><div class="emoji">📚</div><h3>Caché L1/L2/L3</h3><p>Memoria ultrarrápida dentro de la CPU. L3 puede llegar a <b>64 MB</b>.</p></div>
+      <div class="card anim" style="--d:.50s"><div class="emoji">⚡</div><h3>Turbo Boost</h3><p>La CPU sube su frecuencia automáticamente hasta <b>5.8 GHz</b>.</p></div>
+      <div class="card anim" style="--d:.65s"><div class="emoji">🔗</div><h3>Hyper-Threading</h3><p>Cada núcleo físico se ve como <b>2 núcleos lógicos</b> para el sistema.</p></div>
+    </div>
+    <p class="fact anim" style="--d:.80s">🎯 Tu PC usa esta arquitectura para <b>juegos, oficina, desarrollo y edición</b>.</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="0">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 1 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">¿Qué componente actúa como el <span class="hl">"director de orquesta"</span> dentro de una CPU x86-64?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> La ALU</button>
+      <button class="answer anim" style="--d:.38s" data-correct="1"><span class="letter">B</span> La Unidad de Control (UC)</button>
+      <button class="answer anim" style="--d:.46s" data-correct="0"><span class="letter">C</span> La Memoria RAM DDR5</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> El chipset Z790</button>
+    </div>
+    <p class="answer-hint" id="hint0">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="1">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 2 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">¿Qué hace la <span class="hl">ALU</span> en un procesador Intel o AMD?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> Guarda archivos en el SSD NVMe</button>
+      <button class="answer anim" style="--d:.38s" data-correct="0"><span class="letter">B</span> Controla los puertos USB</button>
+      <button class="answer anim" style="--d:.46s" data-correct="1"><span class="letter">C</span> Realiza operaciones matemáticas y lógicas</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> Envía la imagen al monitor</button>
+    </div>
+    <p class="answer-hint" id="hint1">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="2">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 3 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">¿Cuál es el <span class="hl">orden correcto</span> del ciclo de instrucción en una PC x86-64?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> Ejecutar → Buscar → Guardar → Decodificar</button>
+      <button class="answer anim" style="--d:.38s" data-correct="1"><span class="letter">B</span> Buscar → Decodificar → Ejecutar → Guardar</button>
+      <button class="answer anim" style="--d:.46s" data-correct="0"><span class="letter">C</span> Decodificar → Guardar → Buscar → Ejecutar</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> Guardar → Ejecutar → Decodificar → Buscar</button>
+    </div>
+    <p class="answer-hint" id="hint2">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="3">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 4 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">Cuando la CPU x86-64 calcula <b>2 + 2</b>, ¿qué pasa <span class="hl">después</span> con el resultado?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> Se borra automáticamente</button>
+      <button class="answer anim" style="--d:.38s" data-correct="1"><span class="letter">B</span> Se guarda en un registro y luego en la RAM DDR5</button>
+      <button class="answer anim" style="--d:.46s" data-correct="0"><span class="letter">C</span> Se envía directo al monitor sin pasar por la RAM</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> Se guarda en el SSD NVMe</button>
+    </div>
+    <p class="answer-hint" id="hint3">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="4">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 5 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">En una PC x86-64 de escritorio, ¿qué componente envía la imagen final al <span class="hl">monitor</span>?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> La RAM DDR5</button>
+      <button class="answer anim" style="--d:.38s" data-correct="0"><span class="letter">B</span> El chipset Z790</button>
+      <button class="answer anim" style="--d:.46s" data-correct="1"><span class="letter">C</span> La GPU dedicada (RTX / Radeon) por PCIe</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> El SSD NVMe</button>
+    </div>
+    <p class="answer-hint" id="hint4">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="5">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 6 / 7</span>
+      <span class="q-points-badge">⭐ 3 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">¿Qué significa que una PC sea <span class="hl">x86-64</span>?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> Que tiene 64 GB de RAM exactos</button>
+      <button class="answer anim" style="--d:.38s" data-correct="1"><span class="letter">B</span> Que usa procesadores Intel / AMD de 64 bits</button>
+      <button class="answer anim" style="--d:.46s" data-correct="0"><span class="letter">C</span> Que funciona con Windows 64</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> Que tiene 64 ventiladores</button>
+    </div>
+    <p class="answer-hint" id="hint5">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide question-slide" data-qindex="6">
+    <div class="q-header anim" style="--d:.05s">
+      <span class="q-num-badge">PREGUNTA 7 / 7</span>
+      <span class="q-points-badge">⭐ 2 pts</span>
+    </div>
+    <p class="q-text anim" style="--d:.15s">¿Cuál es la característica <span class="hl">principal</span> de las CPU x86-64 modernas de escritorio?</p>
+    <div class="answers">
+      <button class="answer anim" style="--d:.30s" data-correct="0"><span class="letter">A</span> Solo tienen un núcleo</button>
+      <button class="answer anim" style="--d:.38s" data-correct="0"><span class="letter">B</span> No tienen caché</button>
+      <button class="answer anim" style="--d:.46s" data-correct="1"><span class="letter">C</span> Son multi-core con caché L1, L2 y L3</button>
+      <button class="answer anim" style="--d:.54s" data-correct="0"><span class="letter">D</span> Funcionan solo con baterías</button>
+    </div>
+    <p class="answer-hint" id="hint6">Selecciona una respuesta para continuar</p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <div class="emoji big anim" style="--d:.05s">🏆</div>
+    <h2 class="anim" style="--d:.15s">Tus resultados</h2>
+    <div class="score-display anim" style="--d:.30s">
+      <div class="score-big" id="scoreBig">0<span class="score-unit">/ 20 pts</span></div>
+      <div class="score-sub" id="scoreSub">0 de 7 correctas</div>
+      <div class="score-msg" id="scoreMsg">—</div>
+    </div>
+    <div class="token-preview anim" id="tokenPreview" style="--d:.45s">
+      <b>🔐 Código de verificación (corto)</b>
+      <span id="tokenValue" class="token-value token-short">— — — —</span>
+    </div>
+    <div class="token-preview anim" id="tokenPreviewEnc" style="--d:.55s">
+      <b>🔒 Token cifrado AES-GCM</b>
+      <span id="tokenValueEnc" class="token-value token-encrypted">— — — —</span>
+    </div>
+    <p class="fact anim" style="--d:.68s">
+      👉 Pulsa <b>▶</b> para ver la pantalla final con el botón de enviar por WhatsApp.
+    </p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+  <section class="slide">
+    <div class="emoji big anim" style="--d:.05s">🚀</div>
+    <h2 class="anim" style="--d:.15s">¡Envía tus resultados al profesor!</h2>
+    <p class="lead anim" style="--d:.28s">Cada vez que sumas dos números en tu PC x86-64,<br>el ciclo <b>Buscar → Decodificar → Ejecutar → Guardar → Mostrar</b> ocurre <b>miles de millones de veces por segundo</b>.</p>
+
+    <button class="wa-btn anim" id="waBtn" style="--d:.42s">
+      <span class="wa-icon">📱</span> Enviar resultados por WhatsApp
+    </button>
+
+    <div class="token-preview anim" id="tokenPreviewFinal" style="--d:.55s">
+      <b>🔐 Código de verificación (corto)</b>
+      <span id="tokenValueFinal" class="token-value token-short">— — — —</span>
+    </div>
+
+    <div class="token-preview anim" id="tokenPreviewEncFinal" style="--d:.65s">
+      <b>🔒 Token cifrado AES-GCM</b>
+      <span id="tokenValueEncFinal" class="token-value token-encrypted">— — — —</span>
+    </div>
+
+    <div class="tags anim" style="--d:.75s">
+      <span class="tag">x86-64</span>
+      <span class="tag">AES-256-GCM</span>
+      <span class="tag">Web Crypto API</span>
+      <span class="tag">DDR5</span>
+      <span class="tag">NVMe</span>
+      <span class="tag">PCIe 5.0</span>
+    </div>
+
+    <p class="fact anim" style="--d:.85s">
+      🧑‍🏫 Prof. Luis Vásquez · 0412-3583262<br>
+      🎓 ¡Gracias! Ahora entiendes cómo funciona una PC de escritorio moderna.
+    </p>
+    <div class="slide-footer"><b>Fundabit</b> Isla de Coche</div>
+  </section>
+
+</div>
+
+<div class="dots" id="dots"></div>
+
+<div class="controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Anterior">◀</button>
+  <button class="nav-btn" id="nextBtn" aria-label="Siguiente">▶</button>
+</div>
+
+<script>
+(function(){
+  /* ============================================================
+     CONFIGURACIÓN
+     ============================================================ */
+  const WHATSAPP_NUMBER = '584123583262';
+  const TOTAL_QUESTIONS = 7;
+  const FORM_INDEX      = 0;
+  const DIAGRAM_INDEX   = 4;
+  const EXAM_START      = 7;
+  const EXAM_END        = 13;
+  const RESULTS_INDEX   = 14;
+  const LAST_INDEX_CIERRE = 15;
+  const EXAM_TIME_TOTAL = 60;
+
+  const QUESTION_POINTS = [3, 3, 3, 3, 3, 3, 2];
+  const TOTAL_POINTS = 20;
+
+  // 🔐 Claves del sistema
+  const SECRET_KEY = 'FundabitCoche2026-LuisVasquez-x86-64';       // Para el token corto FB26
+  const CRYPTO_KEY_STR = 'Fundabit-Coche-LuisVasquez-2026!';        // 32 chars → AES-256
+
+  // 📚 Metadatos de la materia
+  const MATERIA_NOMBRE = 'Arquitectura del computador';
+  const CLASE_NUMERO   = '01';
+
+  const STORAGE_PROGRESS = 'arqui_x86_progress_v3';
+  const STORAGE_STARTED  = 'arqui_x86_started_v3';
+  const STORAGE_NAME     = 'arqui_x86_name_v3';
+  const STORAGE_CEDULA   = 'arqui_x86_cedula_v3';
+  const STORAGE_EXAM_ANSWERS = 'arqui_x86_answers_v3';
+  const STORAGE_VOICE    = 'arqui_x86_voice_v3';
+  const STORAGE_TIMER    = 'arqui_x86_timer_v3';
+
+  /* ============================================================
+     🔐 MÓDULO AES-GCM (Web Crypto API)
+     ============================================================ */
+  function base64urlEncode(bytes){
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++){
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary)
+      .replace(/\+/g,'-')
+      .replace(/\//g,'_')
+      .replace(/=+$/,'');
+  }
+
+  function base64urlDecode(str){
+    let s = str.replace(/-/g,'+').replace(/_/g,'/');
+    while (s.length % 4) s += '=';
+    const binary = atob(s);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++){
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  async function getCryptoKey(){
+    const enc = new TextEncoder();
+    const keyBytes = enc.encode(CRYPTO_KEY_STR);
+    return await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptPayload(obj){
+    const enc = new TextEncoder();
+    const key = await getCryptoKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = enc.encode(JSON.stringify(obj));
+    const cipher = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      data
+    );
+    const combined = new Uint8Array(iv.length + cipher.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(cipher), iv.length);
+    return base64urlEncode(combined);
+  }
+
+  async function decryptPayload(b64){
+    try {
+      const key = await getCryptoKey();
+      const combined = base64urlDecode(b64);
+      const iv = combined.slice(0, 12);
+      const data = combined.slice(12);
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        data
+      );
+      return JSON.parse(new TextDecoder().decode(decrypted));
+    } catch (e){
+      return null;
+    }
+  }
+
+  /* ============================================================
+     🔐 TOKEN CORTO (FB26) · Respaldo visual
+     ============================================================ */
+  function hashWithKey(data){
+    const payload = data + '||' + SECRET_KEY;
+    let parts = [];
+    for (let seed = 0; seed < 4; seed++){
+      let h = (0x811c9dc5 + seed * 0x1000193) >>> 0;
+      for (let i = 0; i < payload.length; i++){
+        const c = payload.charCodeAt(i);
+        h ^= c;
+        h = Math.imul(h, 0x01000193) >>> 0;
+        h ^= (h >>> 13);
+        h = Math.imul(h, 0x85ebca6b) >>> 0;
+      }
+      parts.push(h.toString(16).padStart(8,'0').toUpperCase());
+    }
+    return parts.join('');
+  }
+
+  function generateToken(nombre, cedula, puntos, aciertos, fecha){
+    const data = [
+      'M:' + MATERIA_NOMBRE,
+      'C:' + CLASE_NUMERO,
+      'N:' + nombre.toUpperCase().trim(),
+      'I:' + cedula.trim(),
+      'P:' + puntos,
+      'A:' + aciertos,
+      'F:' + fecha.trim()
+    ].join('|');
+    const fullHash = hashWithKey(data);
+    return 'FB26-' +
+      fullHash.slice(0,4) + '-' +
+      fullHash.slice(8,12) + '-' +
+      fullHash.slice(16,20) + '-' +
+      fullHash.slice(24,28);
+  }
+
+  /* ============================================================
+     NARRACIONES
+     ============================================================ */
+  const narrations = {
+    0: "¡Bienvenido a la clase de Arquitectura de Escritorio x86-64, dictada por el profesor Luis Vásquez, en Fundabit Isla de Coche! Hoy aprenderás cómo funciona una computadora personal moderna por dentro. Verás cómo los datos viajan desde la memoria RAM DDR5, pasan por un procesador Intel Core o AMD Ryzen, se calculan en la ALU y finalmente aparecen en el monitor a través de la GPU. Para comenzar, escribe tu nombre completo y tu cédula de identidad, y pulsa el botón Comenzar clase interactiva.",
+    1: "La arquitectura x86-64 es la que usan las PC de escritorio y laptops modernas de todo el mundo. También se llama AMD64 o Intel 64. Es una arquitectura de 64 bits que domina el mercado desde los años ochenta. Los procesadores que la implementan son los Intel Core i3, i5, i7, i9 y los AMD Ryzen 3, 5, 7 y 9. Gracias a sus 64 bits puede manejar grandes cantidades de memoria y ejecutar software moderno de forma eficiente.",
+    2: "Una PC x86-64 moderna se compone de piezas específicas. La CPU multi-core, que puede tener entre cuatro y veinticuatro núcleos con caché L1, L2 y L3. La memoria RAM DDR4 o DDR5, que va de dieciséis a sesenta y cuatro gigabytes. El almacenamiento SSD NVMe, que usa el bus PCIe para velocidades de hasta siete mil megabytes por segundo. Y la GPU dedicada, que se conecta por PCIe cuarta o quinta generación. Todos se comunican a través del chipset de la placa base.",
+    3: "Ahora verás la placa base real de una PC x86-64. En el centro está el zócalo de la CPU, que puede ser LGA-1700 para Intel o AM5 para AMD Ryzen. A la derecha están los cuatro bancos DDR5, que soportan hasta ciento noventa y dos gigabytes y frecuencias de cinco mil seiscientos a ocho mil megahercios. Abajo está el slot PCIe quinta generación para la GPU, y el conector M.2 NVMe para el SSD. El chipset Z790 conecta todo y gestiona los puertos USB, SATA y de red.",
+    4: "Aquí comienza la simulación de la suma dos más dos dentro de una PC x86-64. Pulsa reproducir ciclo. Verás partículas que representan datos, instrucciones y resultados. Sigue el recorrido: la RAM DDR5 entrega los números a la CPU, la Unidad de Control los organiza en los registros de sesenta y cuatro bits, la ALU calcula dos más dos, el cuatro regresa a la RAM, y la GPU dedicada lo envía al monitor por HDMI. Al final aparece en pantalla: dos más dos es igual a cuatro.",
+    5: "Repasemos el ciclo completo en una CPU x86-64. Primero buscar: la Unidad de Control trae de la RAM DDR5 la instrucción y los datos. Segundo decodificar: interpreta el código de máquina x86 y coloca los operandos en los registros RAX y RBX de sesenta y cuatro bits. Tercero ejecutar: la ALU realiza la suma. Cuarto guardar: el resultado se escribe de vuelta en los registros y en la RAM. Y quinto mostrar: la GPU dedicada lo dibuja en el monitor. Este ciclo se repite miles de millones de veces por segundo.",
+    6: "Las PC x86-64 modernas tienen características avanzadas. Son multi-core, con varios núcleos trabajando en paralelo, por ejemplo un Ryzen 9 con dieciséis núcleos y treinta y dos hilos. Tienen jerarquía de caché L1, L2 y L3, donde la caché L3 puede llegar a sesenta y cuatro megabytes. Incluyen Turbo Boost, que sube la frecuencia hasta cinco coma ocho gigahercios automáticamente. Y usan Hyper-Threading, donde cada núcleo físico se ve como dos núcleos lógicos para el sistema operativo.",
+    7: "Pregunta uno, valor tres puntos. ¿Qué componente actúa como el director de orquesta dentro de una CPU x86-64? Tienes un minuto para responder.",
+    8: "Pregunta dos, valor tres puntos. ¿Qué hace la ALU en un procesador Intel o AMD? Tienes un minuto para responder.",
+    9: "Pregunta tres, valor tres puntos. ¿Cuál es el orden correcto del ciclo de instrucción en una PC x86-64? Tienes un minuto para responder.",
+    10: "Pregunta cuatro, valor tres puntos. Cuando la CPU x86-64 calcula dos más dos, ¿qué pasa después con el resultado? Tienes un minuto para responder.",
+    11: "Pregunta cinco, valor tres puntos. En una PC x86-64 de escritorio, ¿qué componente envía la imagen final al monitor? Tienes un minuto para responder.",
+    12: "Pregunta seis, valor tres puntos. ¿Qué significa que una PC sea x86-64? Tienes un minuto para responder.",
+    13: "Pregunta siete, valor dos puntos. ¿Cuál es la característica principal de las CPU x86-64 modernas de escritorio? Tienes un minuto para responder.",
+    14: "¡Excelente trabajo! Aquí están tus resultados. La evaluación vale veinte puntos en total. Además verás dos códigos de verificación: uno corto visual y uno cifrado con AES-256-GCM. Pulsa siguiente para ir a la pantalla final donde podrás enviar tus resultados al profesor por WhatsApp.",
+    15: "¡Felicidades, terminaste la clase de Arquitectura de Escritorio x86-64! Ahora entiendes cómo funciona una PC moderna por dentro. Para enviar tus resultados al profesor Luis Vásquez, pulsa el botón verde de WhatsApp. Recuerda: cada vez que sumas dos números en tu PC, el ciclo Buscar, Decodificar, Ejecutar, Guardar y Mostrar ocurre miles de millones de veces por segundo sobre la placa base. ¡Gracias por participar y hasta la próxima, desde Fundabit Isla de Coche!"
+  };
+
+  /* ============================================================
+     ELEMENTOS
+     ============================================================ */
+  const slides    = Array.from(document.querySelectorAll('.slide'));
+  const deck      = document.getElementById('deck');
+  const prevBtn   = document.getElementById('prevBtn');
+  const nextBtn   = document.getElementById('nextBtn');
+  const dotsWrap  = document.getElementById('dots');
+  const bar       = document.getElementById('progressBar');
+  const curNum    = document.getElementById('curNum');
+  const totNum    = document.getElementById('totNum');
+  const lockBadge = document.getElementById('lockBadge');
+  const nameInput = document.getElementById('studentName');
+  const cedInput  = document.getElementById('studentCedula');
+  const formStatus= document.getElementById('formStatus');
+  const startBtn  = document.getElementById('startBtn');
+  const voiceBtn  = document.getElementById('voiceBtn');
+  const replayBtn = document.getElementById('replayBtn');
+  const teacherBtn= document.getElementById('teacherBtn');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerValue   = document.getElementById('timerValue');
+  const timerBar     = document.getElementById('timerBar');
+
+  let current = 0;
+  const LAST_INDEX = slides.length - 1;
+  totNum.textContent = String(slides.length).padStart(2,'0');
+
+  /* ============================================================
+     MODO PROFESOR
+     ============================================================ */
+  const urlParams = new URLSearchParams(window.location.search);
+  const isTeacherMode =
+    urlParams.has('profesor') ||
+    urlParams.get('modo') === 'profesor' ||
+    window.location.hash === '#profesor';
+
+  if (isTeacherMode) teacherBtn.classList.add('show');
+
+  /* ============================================================
+     ESTADO DEL EXAMEN
+     ============================================================ */
+  let examAnswers = new Array(TOTAL_QUESTIONS).fill(null);
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_EXAM_ANSWERS) || 'null');
+    if (Array.isArray(saved) && saved.length === TOTAL_QUESTIONS) examAnswers = saved;
+  } catch(e){}
+  function saveAnswers(){
+    try { localStorage.setItem(STORAGE_EXAM_ANSWERS, JSON.stringify(examAnswers)); } catch(e){}
+  }
+
+  const safeGet = (k) => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+  const safeSet = (k,v) => { try { localStorage.setItem(k,v); } catch(e){} };
+
+  let hasStarted = safeGet(STORAGE_STARTED) === '1';
+  let savedIndex = parseInt(safeGet(STORAGE_PROGRESS) || '0', 10) || 0;
+  if (savedIndex < 0 || savedIndex > LAST_INDEX) savedIndex = 0;
+
+  const savedName   = safeGet(STORAGE_NAME);
+  const savedCedula = safeGet(STORAGE_CEDULA);
+  if (savedName)   nameInput.value = savedName;
+  if (savedCedula) cedInput.value  = savedCedula;
+
+  nameInput.addEventListener('input', () => { safeSet(STORAGE_NAME, nameInput.value); checkForm(); });
+  cedInput.addEventListener('input', () => {
+    cedInput.value = cedInput.value.replace(/\D/g, '').slice(0, 10);
+    safeSet(STORAGE_CEDULA, cedInput.value);
+    checkForm();
+  });
+
+  /* ============================================================
+     SISTEMA DE VOZ
+     ============================================================ */
+  const synth = window.speechSynthesis;
+  const voiceSupported = !!synth && typeof SpeechSynthesisUtterance !== 'undefined';
+
+  let voiceEnabled = safeGet(STORAGE_VOICE) !== '0';
+  let currentUtterance = null;
+  let spanishVoice = null;
+  let speakToken = 0;
+
+  function pickSpanishVoice(){
+    if (!voiceSupported) return null;
+    const voices = synth.getVoices();
+    if (!voices || !voices.length) return null;
+    const preferLangs = ['es-VE','es-MX','es-US','es-ES','es-AR','es-CO','es-CL','es-PE','es-419','es'];
+    for (const l of preferLangs){
+      const v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(l.toLowerCase()));
+      if (v) return v;
+    }
+    return voices.find(v => v.lang && v.lang.toLowerCase().startsWith('es')) || null;
+  }
+  function refreshVoices(){ spanishVoice = pickSpanishVoice(); }
+  if (voiceSupported){
+    refreshVoices();
+    if (typeof synth.onvoiceschanged !== 'undefined'){
+      synth.onvoiceschanged = refreshVoices;
+    }
+    setTimeout(refreshVoices, 400);
+    setTimeout(refreshVoices, 1200);
+  }
+
+  function updateVoiceBtn(){
+    if (!voiceSupported){ voiceBtn.style.display = 'none'; replayBtn.style.display = 'none'; return; }
+    if (voiceEnabled){
+      voiceBtn.classList.remove('off');
+      voiceBtn.textContent = '🔊';
+      voiceBtn.title = 'Voz activada · clic para silenciar';
+    } else {
+      voiceBtn.classList.add('off');
+      voiceBtn.textContent = '🔇';
+      voiceBtn.title = 'Voz silenciada · clic para activar';
+    }
+  }
+
+  function stopSpeaking(){
+    if (!voiceSupported) return;
+    speakToken++;
+    try { synth.cancel(); } catch(e){}
+    currentUtterance = null;
+    voiceBtn.classList.remove('speaking');
+  }
+
+  function speakSlide(idx, options){
+    if (!voiceSupported) return;
+    options = options || {};
+    const forcePlay = !!options.force;
+    stopSpeaking();
+    if (!voiceEnabled && !forcePlay) return;
+    const text = narrations[idx];
+    if (!text) return;
+    if (!spanishVoice) refreshVoices();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = (spanishVoice && spanishVoice.lang) || 'es-ES';
+    if (spanishVoice) utter.voice = spanishVoice;
+    utter.rate = 1.0;
+    utter.pitch = 1.05;
+    utter.volume = 1.0;
+    utter.onstart = () => voiceBtn.classList.add('speaking');
+    utter.onend = () => { if (currentUtterance === utter) voiceBtn.classList.remove('speaking'); };
+    utter.onerror = () => { if (currentUtterance === utter) voiceBtn.classList.remove('speaking'); };
+
+    currentUtterance = utter;
+    const myToken = ++speakToken;
+    setTimeout(() => {
+      if (myToken !== speakToken) return;
+      if (!voiceEnabled && !forcePlay) return;
+      try { synth.speak(utter); } catch(e){}
+    }, 120);
+  }
+
+  voiceBtn.addEventListener('click', () => {
+    if (!voiceSupported){ showToast('🔇 Tu navegador no soporta síntesis de voz.'); return; }
+    voiceEnabled = !voiceEnabled;
+    safeSet(STORAGE_VOICE, voiceEnabled ? '1' : '0');
+    updateVoiceBtn();
+    if (voiceEnabled){ showToast('🔊 Voz activada'); speakSlide(current); }
+    else { showToast('🔇 Voz silenciada'); stopSpeaking(); }
+  });
+
+  replayBtn.addEventListener('click', () => {
+    if (!voiceSupported){ showToast('🔇 Tu navegador no soporta síntesis de voz.'); return; }
+    replayBtn.classList.remove('spinning');
+    void replayBtn.offsetWidth;
+    replayBtn.classList.add('spinning');
+    setTimeout(() => replayBtn.classList.remove('spinning'), 600);
+    if (!voiceEnabled){ voiceEnabled = true; safeSet(STORAGE_VOICE, '1'); updateVoiceBtn(); }
+    speakSlide(current, { force: true });
+    showToast('🔁 Repitiendo explicación…');
+  });
+
+  updateVoiceBtn();
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
+
+  /* ============================================================
+     TEMPORIZADOR
+     ============================================================ */
+  let examTimerId = null;
+  let examSecondsLeft = EXAM_TIME_TOTAL;
+  let examTimerRunning = false;
+
+  function formatTime(sec){
+    const s = Math.max(0, sec);
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+  }
+
+  function updateTimerUI(){
+    timerValue.textContent = formatTime(examSecondsLeft);
+    const pct = Math.max(0, Math.min(100, (examSecondsLeft / EXAM_TIME_TOTAL) * 100));
+    timerBar.style.width = pct + '%';
+    timerDisplay.classList.remove('warn','critical');
+    if (examSecondsLeft <= 10)      timerDisplay.classList.add('critical');
+    else if (examSecondsLeft <= 20) timerDisplay.classList.add('warn');
+  }
+
+  function startTimerForCurrentQuestion(){
+    if (examTimerId){ clearInterval(examTimerId); examTimerId = null; }
+    examTimerRunning = false;
+    examSecondsLeft = EXAM_TIME_TOTAL;
+    safeSet(STORAGE_TIMER, String(examSecondsLeft));
+    timerDisplay.classList.add('show');
+    timerDisplay.classList.remove('warn','critical');
+    updateTimerUI();
+    examTimerRunning = true;
+    examTimerId = setInterval(() => {
+      examSecondsLeft--;
+      safeSet(STORAGE_TIMER, String(examSecondsLeft));
+      updateTimerUI();
+      if (examSecondsLeft <= 0){
+        clearInterval(examTimerId);
+        examTimerId = null;
+        examTimerRunning = false;
+        safeSet(STORAGE_TIMER, '0');
+        onQuestionTimeUp();
+      }
+    }, 1000);
+  }
+
+  function stopExamTimer(){
+    if (examTimerId){ clearInterval(examTimerId); examTimerId = null; }
+    examTimerRunning = false;
+    timerDisplay.classList.remove('show','warn','critical');
+  }
+
+  function onQuestionTimeUp(){
+    const qi = current - EXAM_START;
+    if (qi >= 0 && qi < TOTAL_QUESTIONS){
+      if (!examAnswers[qi] || typeof examAnswers[qi].selectedIdx !== 'number'){
+        examAnswers[qi] = { selectedIdx: -1, correct: 0 };
+        saveAnswers();
+      }
+    }
+    showToast('⏰ ¡Se acabó el tiempo!\nAvanzando…');
+    stopSpeaking();
+    if (current < EXAM_END){ goToForce(current + 1); }
+    else { goToForce(RESULTS_INDEX); }
+  }
+
+  function goToForce(i){
+    const targetIndex = Math.max(0, Math.min(LAST_INDEX, i));
+    stopSpeaking();
+    current = targetIndex;
+    safeSet(STORAGE_PROGRESS, String(current));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === current));
+    dots.forEach((d, idx) => {
+      d.classList.toggle('active', idx === current);
+      if (isExamSlide(idx)) { d.disabled = (idx !== current); }
+      else if (current >= EXAM_START) { d.disabled = (idx <= EXAM_END); }
+      else { d.disabled = hasStarted && idx === FORM_INDEX; }
+    });
+    bar.style.width = ((current + 1) / slides.length * 100) + '%';
+    curNum.textContent = String(current + 1).padStart(2,'0');
+    const minAllowed = hasStarted ? 1 : 0;
+    const blockBack = current >= EXAM_START;
+    prevBtn.disabled = (current <= minAllowed) || blockBack;
+    if (current === FORM_INDEX) {
+      const { ok } = isFormComplete();
+      nextBtn.disabled = !ok;
+      startBtn.disabled = !ok;
+      startBtn.classList.toggle('ready', ok);
+      checkForm();
+    } else if (isExamSlide(current)) {
+      const qi = current - EXAM_START;
+      nextBtn.disabled = !isAnswerSelected(qi);
+    } else { nextBtn.disabled = current === LAST_INDEX; }
+    if (hasStarted) lockBadge.classList.add('show');
+    else lockBadge.classList.remove('show');
+    if (current === RESULTS_INDEX) {
+      updateResults();
+      updateAllTokens();
+      if (calculatePoints() >= 14) confetti();
+    }
+    if (current === LAST_INDEX_CIERRE) {
+      updateAllTokens();
+      confetti();
+    }
+    if (current !== DIAGRAM_INDEX) stopFlow();
+    if (current >= EXAM_START && current <= EXAM_END){ startTimerForCurrentQuestion(); }
+    else { stopExamTimer(); }
+    if (current > EXAM_END) { safeSet(STORAGE_TIMER, '0'); }
+    speakSlide(current);
+  }
+
+  function isFormComplete(){
+    const nombre = nameInput.value.trim();
+    const cedula = cedInput.value.trim();
+    const nombreOk = nombre.length >= 5 && nombre.split(/\s+/).length >= 2;
+    const cedulaOk = /^\d{6,10}$/.test(cedula);
+    return { ok: nombreOk && cedulaOk, nombreOk, cedulaOk };
+  }
+  function checkForm(){
+    const { ok, nombreOk, cedulaOk } = isFormComplete();
+    nameInput.classList.toggle('filled', nombreOk);
+    cedInput.classList.toggle('filled', cedulaOk);
+    if (ok) { formStatus.textContent = '✅ ¡Listo! Pulsa "Comenzar clase interactiva"'; formStatus.className = 'form-status ok'; }
+    else if (!nombreOk && !cedulaOk) { formStatus.textContent = '⚠️ Escribe tu nombre completo y cédula'; formStatus.className = 'form-status warn'; }
+    else if (!nombreOk) { formStatus.textContent = '⚠️ Falta nombre y apellido'; formStatus.className = 'form-status warn'; }
+    else { formStatus.textContent = '⚠️ Falta la cédula (6 a 10 dígitos)'; formStatus.className = 'form-status warn'; }
+    if (current === FORM_INDEX) {
+      startBtn.classList.toggle('ready', ok);
+      startBtn.disabled = !ok;
+      nextBtn.disabled = !ok;
+    }
+  }
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'dot';
+    if (i >= EXAM_START && i <= EXAM_END) d.classList.add('exam-dot');
+    d.setAttribute('aria-label', 'Ir a la diapositiva ' + (i+1));
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+  });
+  const dots = Array.from(document.querySelectorAll('.dot'));
+
+  let toastEl = null;
+  function showToast(msg){
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  function isExamSlide(idx){ return idx >= EXAM_START && idx <= EXAM_END; }
+  function isAnswerSelected(qi){ return examAnswers[qi] && typeof examAnswers[qi].selectedIdx === 'number'; }
+
+  function goTo(i){
+    const targetIndex = Math.max(0, Math.min(LAST_INDEX, i));
+    if (hasStarted && targetIndex === FORM_INDEX) { showToast('🔒 Ya comenzaste la clase.\nContinúa donde la dejaste.'); return; }
+    if (current === FORM_INDEX && targetIndex > FORM_INDEX) {
+      const { ok } = isFormComplete();
+      if (!ok) { startBtn.classList.add('locked'); setTimeout(() => startBtn.classList.remove('locked'), 500); showToast('⚠️ Debes completar nombre y cédula\npara comenzar.'); return; }
+      hasStarted = true; safeSet(STORAGE_STARTED, '1');
+    }
+    if (targetIndex < current && current >= EXAM_START) {
+      prevBtn.classList.add('locked');
+      setTimeout(() => prevBtn.classList.remove('locked'), 500);
+      if (isExamSlide(current)) showToast('🔒 No puedes retroceder durante la evaluación.');
+      else showToast('🔒 No puedes volver a la evaluación.');
+      return;
+    }
+    if (isExamSlide(current) && targetIndex > current) {
+      const qi = current - EXAM_START;
+      if (!isAnswerSelected(qi)) { nextBtn.classList.add('locked'); setTimeout(() => nextBtn.classList.remove('locked'), 500); showToast('⚠️ Debes responder la pregunta\nantes de continuar.'); return; }
+    }
+    if (current === EXAM_END && targetIndex > EXAM_END) {
+      const faltan = examAnswers.filter(a => !a || typeof a.selectedIdx !== 'number').length;
+      if (faltan > 0) { showToast('⚠️ Aún tienes ' + faltan + ' pregunta' + (faltan>1?'s':'') + ' sin responder.'); return; }
+    }
+    stopSpeaking();
+    current = targetIndex;
+    safeSet(STORAGE_PROGRESS, String(current));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === current));
+    dots.forEach((d, idx) => {
+      d.classList.toggle('active', idx === current);
+      if (isExamSlide(idx)) { d.disabled = (idx !== current); }
+      else if (current >= EXAM_START) { d.disabled = (idx <= EXAM_END); }
+      else { d.disabled = hasStarted && idx === FORM_INDEX; }
+    });
+    bar.style.width = ((current + 1) / slides.length * 100) + '%';
+    curNum.textContent = String(current + 1).padStart(2,'0');
+    const minAllowed = hasStarted ? 1 : 0;
+    const blockBack = current >= EXAM_START;
+    prevBtn.disabled = (current <= minAllowed) || blockBack;
+    if (current === FORM_INDEX) {
+      const { ok } = isFormComplete();
+      nextBtn.disabled = !ok; startBtn.disabled = !ok;
+      startBtn.classList.toggle('ready', ok);
+      checkForm();
+    } else if (isExamSlide(current)) {
+      const qi = current - EXAM_START;
+      nextBtn.disabled = !isAnswerSelected(qi);
+    } else { nextBtn.disabled = current === LAST_INDEX; }
+    if (hasStarted) lockBadge.classList.add('show');
+    else lockBadge.classList.remove('show');
+    if (current === RESULTS_INDEX) {
+      updateResults();
+      updateAllTokens();
+      if (calculatePoints() >= 14) confetti();
+    }
+    if (current === LAST_INDEX_CIERRE) { updateAllTokens(); confetti(); }
+    if (current !== DIAGRAM_INDEX) stopFlow();
+    if (current >= EXAM_START && current <= EXAM_END){ startTimerForCurrentQuestion(); }
+    else { stopExamTimer(); }
+    if (current > EXAM_END) { safeSet(STORAGE_TIMER, '0'); }
+    speakSlide(current);
+  }
+
+  const next = () => goTo(current + 1);
+  const prev = () => goTo(current - 1);
+  prevBtn.addEventListener('click', prev);
+  nextBtn.addEventListener('click', next);
+
+  startBtn.addEventListener('click', () => {
+    const { ok } = isFormComplete();
+    if (!ok) { startBtn.classList.add('locked'); setTimeout(() => startBtn.classList.remove('locked'), 500); showToast('⚠️ Completa nombre y cédula\npara comenzar.'); return; }
+    goTo(1);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (verifyOverlay.classList.contains('show')) {
+      if (e.key === 'Escape') verifyOverlay.classList.remove('show');
+      return;
+    }
+    if (['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key))          { e.preventDefault(); prev(); }
+    if (e.key === 'Home') goTo(hasStarted ? 1 : 0);
+    if (e.key === 'End')  goTo(LAST_INDEX);
+  });
+
+  deck.addEventListener('click', e => {
+    if (e.target.closest('button, input, textarea, a, .answer, .mobo-stage, .mobo, .monitor-col, .vn-controls, .voice-btn, .replay-btn, .teacher-btn, .verify-overlay, .timer-display')) return;
+    if (e.clientX < window.innerWidth * 0.28) prev();
+    else next();
+  });
+
+  let touchX = 0, touchY = 0;
+  document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; touchY = e.changedTouches[0].clientY; }, {passive:true});
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    const dy = e.changedTouches[0].clientY - touchY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? next() : prev(); }
+  }, {passive:true});
+
+  document.querySelectorAll('.question-slide').forEach(slide => {
+    const qi = parseInt(slide.dataset.qindex, 10);
+    const answers = slide.querySelectorAll('.answer');
+    const hint = slide.querySelector('.answer-hint');
+    if (examAnswers[qi] && typeof examAnswers[qi].selectedIdx === 'number') {
+      const sel = examAnswers[qi].selectedIdx;
+      answers.forEach((b, idx) => { if (idx === sel) b.classList.add('selected'); });
+      hint.textContent = '✅ Respuesta guardada';
+      hint.classList.add('ready');
+    }
+    answers.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        if (examAnswers[qi] && typeof examAnswers[qi].selectedIdx === 'number') { showToast('🔒 Ya respondiste esta pregunta.'); return; }
+        answers.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        examAnswers[qi] = { selectedIdx: idx, correct: btn.dataset.correct === '1' ? 1 : 0 };
+        saveAnswers();
+        hint.textContent = '✅ Respuesta guardada · Pulsa ▶ para continuar';
+        hint.classList.add('ready');
+        nextBtn.disabled = false;
+        if (voiceSupported && voiceEnabled){
+          speakToken++;
+          try { synth.cancel(); } catch(e){}
+          voiceBtn.classList.remove('speaking');
+          const fb = new SpeechSynthesisUtterance('Respuesta guardada');
+          fb.lang = (spanishVoice && spanishVoice.lang) || 'es-ES';
+          if (spanishVoice) fb.voice = spanishVoice;
+          fb.rate = 1.05; fb.pitch = 1.0; fb.volume = 0.95;
+          const myToken = speakToken;
+          setTimeout(() => { if (myToken !== speakToken) return; try { synth.speak(fb); } catch(e){} }, 120);
+        }
+      });
+    });
+  });
+
+  function countCorrect(){
+    return examAnswers.reduce((s, a) => s + ((a && a.correct) ? 1 : 0), 0);
+  }
+  function calculatePoints(){
+    return examAnswers.reduce((sum, a, i) => sum + ((a && a.correct) ? QUESTION_POINTS[i] : 0), 0);
+  }
+
+  function updateResults(){
+    const puntos = calculatePoints();
+    const aciertos = countCorrect();
+    const pct = Math.round(puntos / TOTAL_POINTS * 100);
+    document.getElementById('scoreBig').innerHTML = puntos + '<span class="score-unit">/ ' + TOTAL_POINTS + ' pts</span>';
+    document.getElementById('scoreSub').textContent = aciertos + ' de ' + TOTAL_QUESTIONS + ' correctas';
+    let msg = '';
+    if (pct === 100)    msg = '🌟 ¡PERFECTO! Dominas la arquitectura x86-64';
+    else if (pct >= 80) msg = '👏 ¡Excelente! Entiendes el flujo de datos en una PC moderna';
+    else if (pct >= 60) msg = '💪 ¡Bien! Vas por buen camino';
+    else if (pct >= 40) msg = '📖 Repasa un poco más la clase';
+    else                msg = '🔁 Vuelve a ver la clase y reinténtalo';
+    document.getElementById('scoreMsg').textContent = msg + '  ·  ' + pct + '%';
+  }
+
+  function buildFechaStr(){
+    return new Date().toLocaleString('es-VE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  /* ============================================================
+     🔐 CONSTRUIR PAYLOAD Y CIFRAR
+     ============================================================ */
+  function buildPayload(){
+    const nombre   = (nameInput.value || '').trim() || 'Estudiante';
+    const cedula   = (cedInput.value  || '').trim() || '00000000';
+    const puntos   = calculatePoints();
+    const aciertos = countCorrect();
+    const fecha    = buildFechaStr();
+    // Detalle de respuestas: 1 = acierto, 0 = fallo
+    const detalle  = examAnswers.map(a => (a && a.correct) ? 1 : 0);
+    return {
+      m:  MATERIA_NOMBRE,
+      c:  CLASE_NUMERO,
+      n:  nombre,
+      cc: cedula,
+      p:  puntos,
+      a:  aciertos,
+      f:  fecha,
+      d:  detalle
+    };
+  }
+
+  async function generateEncryptedToken(){
+    const payload = buildPayload();
+    return await encryptPayload(payload);
+  }
+
+  /* ============================================================
+     ACTUALIZAR TOKENS VISIBLES
+     ============================================================ */
+  async function updateAllTokens(){
+    const nombre   = (nameInput.value || '').trim() || 'Estudiante';
+    const cedula   = (cedInput.value  || '').trim() || '00000000';
+    const puntos   = calculatePoints();
+    const aciertos = countCorrect();
+    const fecha    = buildFechaStr();
+
+    // Token corto
+    const tokenCorto = generateToken(nombre, cedula, puntos, aciertos, fecha);
+    ['tokenValue', 'tokenValueFinal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = tokenCorto;
+    });
+
+    // Token cifrado AES-GCM
+    try {
+      const tokenEnc = await generateEncryptedToken();
+      ['tokenValueEnc', 'tokenValueEncFinal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = tokenEnc;
+      });
+    } catch(e){
+      console.error('Error cifrando token:', e);
+    }
+  }
+
+  /* ============================================================
+     ANIMACIÓN DE LA PLACA
+     ============================================================ */
+  const mobo = document.getElementById('mobo');
+  const particlesLayer = document.getElementById('particlesLayer');
+  const boxCPU   = document.getElementById('moboCPU');
+  const boxRAM   = document.getElementById('moboRAM');
+  const boxChip  = document.getElementById('moboChipset');
+  const boxPCIe  = document.getElementById('moboPCIe');
+  const boxGPU   = document.getElementById('gpuChip');
+  const cpuUC    = document.getElementById('cpuUC');
+  const cpuALU   = document.getElementById('cpuALU');
+  const cpuREG   = document.getElementById('cpuREG');
+  const ramVal1  = document.getElementById('ramVal1');
+  const ramVal2  = document.getElementById('ramVal2');
+  const ramVal3  = document.getElementById('ramVal3');
+  const ramVal4  = document.getElementById('ramVal4');
+  const monitorScreen = document.getElementById('monitorScreen');
+  const screenIdle    = document.getElementById('screenIdle');
+  const screenContent = document.getElementById('screenContent');
+  const screenToks    = screenContent.querySelectorAll('.tok');
+
+  const steps    = Array.from(document.querySelectorAll('.step'));
+  const playBtn  = document.getElementById('playBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const traces = {
+    cpuRam1:  document.getElementById('tr-cpu-ram-1'),
+    cpuRam2:  document.getElementById('tr-cpu-ram-2'),
+    cpuRam3:  document.getElementById('tr-cpu-ram-3'),
+    cpuGpu:   document.getElementById('tr-cpu-gpu'),
+    ramGpu:   document.getElementById('tr-ram-gpu'),
+    gpuOut:   document.getElementById('tr-gpu-out'),
+    cpuChip1: document.getElementById('tr-cpu-chip-1'),
+    chipRam:  document.getElementById('tr-chip-ram')
+  };
+
+  let flowTimeouts = [];
+  let flowParticles = [];
+  let isPlaying = false;
+
+  function clearTimeouts(){ flowTimeouts.forEach(t => clearTimeout(t)); flowTimeouts = []; }
+  function removeParticles(){ flowParticles.forEach(p => p.remove()); flowParticles = []; }
+  function clearHighlights(){
+    [boxCPU, boxRAM, boxChip, boxPCIe, boxGPU, cpuUC, cpuALU, cpuREG].forEach(b => { if (b) b.classList.remove('active'); });
+    Object.values(traces).forEach(t => { if (t) t.classList.remove('active'); });
+    steps.forEach(s => s.classList.remove('active'));
+    [ramVal1, ramVal2, ramVal3, ramVal4].forEach(v => { if (v) v.classList.remove('glow'); });
+    ramVal4.classList.add('hidden');
+    monitorScreen.classList.remove('on');
+    screenToks.forEach(t => t.classList.remove('show'));
+    screenIdle.style.opacity = '1';
+  }
+  function stopFlow(){
+    isPlaying = false;
+    clearTimeouts();
+    removeParticles();
+    clearHighlights();
+    if (playBtn) playBtn.textContent = '▶ Reproducir ciclo';
+  }
+
+  function spawnParticle(fromEl, toEl, type, duration, size, value){
+    if (!mobo || !fromEl || !toEl) return;
+    const moboRect = mobo.getBoundingClientRect();
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect   = toEl.getBoundingClientRect();
+    const startX = fromRect.left + fromRect.width/2  - moboRect.left;
+    const startY = fromRect.top  + fromRect.height/2 - moboRect.top;
+    const endX   = toRect.left   + toRect.width/2    - moboRect.left;
+    const endY   = toRect.top    + toRect.height/2   - moboRect.top;
+    const p = document.createElement('div');
+    p.className = 'particle ' + (type || 'data');
+    if (size >= 20) p.classList.add('large');
+    const s = size || 16;
+    p.style.width  = s + 'px';
+    p.style.height = s + 'px';
+    p.style.left = startX + 'px';
+    p.style.top  = startY + 'px';
+    if (value != null) p.textContent = value;
+    const dur = duration || 1000;
+    p.animate(
+      [
+        { left: startX + 'px', top: startY + 'px', opacity: 0, transform:'translate(-50%,-50%) scale(.4)' },
+        { opacity: 1, offset: 0.12, transform:'translate(-50%,-50%) scale(1)' },
+        { left: endX + 'px', top: endY + 'px', opacity: 1, transform:'translate(-50%,-50%) scale(1)' },
+        { left: endX + 'px', top: endY + 'px', opacity: 0, transform:'translate(-50%,-50%) scale(.5)' }
+      ],
+      { duration: dur, easing:'cubic-bezier(.4,0,.4,1)', fill:'forwards' }
+    );
+    particlesLayer.appendChild(p);
+    flowParticles.push(p);
+    setTimeout(() => { p.remove(); flowParticles = flowParticles.filter(x => x !== p); }, dur + 100);
+  }
+
+  function setStep(n){ steps.forEach(s => s.classList.toggle('active', parseInt(s.dataset.step,10) === n)); }
+  function activateTrace(key){ if (traces[key]) traces[key].classList.add('active'); }
+  function deactivateTrace(key){ if (traces[key]) traces[key].classList.remove('active'); }
+
+  function playFlow(){
+    stopFlow();
+    isPlaying = true;
+    playBtn.textContent = '⏸ Reproduciendo…';
+    screenIdle.style.opacity = '1';
+    screenToks.forEach(t => t.classList.remove('show'));
+
+    flowTimeouts.push(setTimeout(() => {
+      setStep(1);
+      boxRAM.classList.add('active');
+      boxCPU.classList.add('active');
+      ramVal1.classList.add('glow'); ramVal2.classList.add('glow'); ramVal3.classList.add('glow');
+      activateTrace('cpuRam1'); activateTrace('cpuRam2'); activateTrace('cpuRam3');
+      spawnParticle(boxRAM, boxCPU, 'inst', 1300, 20, 'Σ');
+      setTimeout(() => spawnParticle(boxRAM, boxCPU, 'data', 1200, 20, '2'), 250);
+      setTimeout(() => spawnParticle(boxRAM, boxCPU, 'data', 1200, 20, '2'), 500);
+    }, 100));
+
+    flowTimeouts.push(setTimeout(() => {
+      setStep(2);
+      deactivateTrace('cpuRam1'); deactivateTrace('cpuRam2'); deactivateTrace('cpuRam3');
+      boxRAM.classList.remove('active');
+      boxCPU.classList.add('active');
+      cpuUC.classList.add('active');
+      cpuREG.classList.add('active');
+      ramVal1.classList.remove('glow'); ramVal2.classList.remove('glow'); ramVal3.classList.remove('glow');
+      spawnParticle(cpuUC, cpuREG, 'ctrl', 700, 16);
+      setTimeout(() => spawnParticle(cpuUC, cpuREG, 'data', 800, 20, '2'), 200);
+      setTimeout(() => spawnParticle(cpuUC, cpuREG, 'data', 800, 20, '2'), 400);
+    }, 2000));
+
+    flowTimeouts.push(setTimeout(() => {
+      setStep(3);
+      cpuUC.classList.remove('active');
+      cpuREG.classList.add('active');
+      cpuALU.classList.add('active');
+      spawnParticle(cpuREG, cpuALU, 'data', 700, 20, '2');
+      setTimeout(() => spawnParticle(cpuREG, cpuALU, 'data', 700, 20, '2'), 200);
+    }, 3200));
+
+    flowTimeouts.push(setTimeout(() => {
+      setStep(4);
+      cpuALU.classList.remove('active');
+      cpuREG.classList.add('active');
+      spawnParticle(cpuALU, cpuREG, 'res', 700, 24, '4');
+    }, 4300));
+
+    flowTimeouts.push(setTimeout(() => {
+      boxCPU.classList.add('active');
+      boxRAM.classList.add('active');
+      cpuREG.classList.remove('active');
+      activateTrace('cpuRam2'); activateTrace('cpuRam3');
+      ramVal4.classList.remove('hidden');
+      ramVal4.classList.add('glow');
+      spawnParticle(boxCPU, boxRAM, 'res', 1200, 24, '4');
+    }, 5200));
+
+    flowTimeouts.push(setTimeout(() => {
+      setStep(5);
+      deactivateTrace('cpuRam2'); deactivateTrace('cpuRam3');
+      boxRAM.classList.remove('active');
+      boxChip.classList.add('active');
+      boxGPU.classList.add('active');
+      activateTrace('chipRam'); activateTrace('ramGpu');
+      spawnParticle(boxRAM, boxGPU, 'res', 1400, 24, '4');
+    }, 6600));
+
+    flowTimeouts.push(setTimeout(() => {
+      activateTrace('gpuOut');
+      monitorScreen.classList.add('on');
+      screenIdle.style.opacity = '0';
+      screenToks[0].classList.add('show');
+    }, 8200));
+
+    flowTimeouts.push(setTimeout(() => screenToks[1].classList.add('show'), 8700));
+    flowTimeouts.push(setTimeout(() => screenToks[2].classList.add('show'), 9100));
+    flowTimeouts.push(setTimeout(() => screenToks[3].classList.add('show'), 9500));
+    flowTimeouts.push(setTimeout(() => screenToks[4].classList.add('show'), 9900));
+
+    flowTimeouts.push(setTimeout(() => {
+      stopFlow();
+      monitorScreen.classList.add('on');
+      screenIdle.style.opacity = '0';
+      screenToks.forEach(t => t.classList.add('show'));
+      ramVal4.classList.remove('hidden');
+      ramVal4.classList.add('glow');
+    }, 11600));
+  }
+
+  if (playBtn) playBtn.addEventListener('click', () => { if (isPlaying) stopFlow(); else playFlow(); });
+  if (resetBtn) resetBtn.addEventListener('click', () => { stopFlow(); setTimeout(() => playFlow(), 200); });
+
+  const diagramSlide = slides[DIAGRAM_INDEX];
+  const observer = new MutationObserver(() => {
+    if (diagramSlide.classList.contains('active')) {
+      setTimeout(() => { if (!isPlaying) playFlow(); }, 700);
+    }
+  });
+  observer.observe(diagramSlide, { attributes:true, attributeFilter:['class'] });
+
+  /* ============================================================
+     VERIFICADOR DEL PROFESOR (con AES-GCM)
+     ============================================================ */
+  const verifyOverlay = document.getElementById('verifyOverlay');
+  const verifyText    = document.getElementById('verifyText');
+  const verifyResult  = document.getElementById('verifyResult');
+
+  teacherBtn.addEventListener('click', () => { verifyOverlay.classList.add('show'); verifyResult.classList.remove('show'); });
+  document.getElementById('verifyClose').addEventListener('click', () => verifyOverlay.classList.remove('show'));
+  verifyOverlay.addEventListener('click', (e) => { if (e.target === verifyOverlay) verifyOverlay.classList.remove('show'); });
+  document.getElementById('verifyClear').addEventListener('click', () => {
+    verifyText.value = ''; verifyResult.classList.remove('show'); verifyResult.className = 'verify-result'; verifyText.focus();
+  });
+
+  document.getElementById('verifyExample').addEventListener('click', async () => {
+    const ejemploPayload = {
+      m: MATERIA_NOMBRE, c: CLASE_NUMERO,
+      n: 'María González', cc: '12345678',
+      p: 17, a: 6,
+      f: '15/01/2026 10:30',
+      d: [1,1,1,0,1,1,1]
+    };
+    const ejemploToken = await encryptPayload(ejemploPayload);
+    const ejemploCorto = generateToken('María González', '12345678', 17, 6, '15/01/2026 10:30');
+    const exampleMsg =
+`¡Hola! 🎓
+
+📝 *EVALUACIÓN · ARQUITECTURA DE ESCRITORIO x86-64*
+🏫 Fundabit Isla de Coche
+👨‍🏫 Prof. Luis Vásquez
+
+━━━━━━━━━━━━━━━
+📚 *Materia:* Arquitectura del computador
+🏫 *Clase:* 01
+
+━━━━━━━━━━━━━━━
+👤 *DATOS DEL ESTUDIANTE*
+━━━━━━━━━━━━━━━
+🧑 Nombre: *María González*
+🆔 Cédula: *12345678*
+
+━━━━━━━━━━━━━━━
+📊 *RESULTADOS*
+━━━━━━━━━━━━━━━
+🎯 Puntos: *17 / 20 pts*
+✅ Correctas: *6 de 7*
+📈 Porcentaje: *85%*
+👏 Estado: ¡Excelente!
+
+📋 *Detalle:*
+✅ P1 (3 pts)
+✅ P2 (3 pts)
+✅ P3 (3 pts)
+❌ P4 (0 pts)
+✅ P5 (3 pts)
+✅ P6 (3 pts)
+✅ P7 (2 pts)
+
+🕒 Fecha: 15/01/2026 10:30
+━━━━━━━━━━━━━━━
+
+🔐 *CÓDIGO CORTO:*
+\`${ejemploCorto}\`
+
+🔒 *TOKEN CIFRADO AES-GCM:*
+\`${ejemploToken}\`
+
+Enviado desde la clase interactiva ✨`;
+    verifyText.value = exampleMsg;
+    verifyText.focus();
+  });
+
+  document.getElementById('verifyRun').addEventListener('click', runVerification);
+
+  async function runVerification(){
+    const raw = (verifyText.value || '').trim();
+    verifyResult.className = 'verify-result';
+
+    if (!raw){
+      verifyResult.classList.add('show','warn');
+      verifyResult.innerHTML = '<div class="result-title">⚠️ Mensaje vacío</div>Pega el mensaje de WhatsApp primero.';
+      return;
+    }
+
+    // Buscar token cifrado
+    const encMatch = raw.match(/TOKEN CIFRADO AES-GCM:?\*?\s*`?([A-Za-z0-9_\-]+)`?/i) ||
+                     raw.match(/`([A-Za-z0-9_\-]{80,})`/);
+
+    if (!encMatch){
+      verifyResult.classList.add('show','warn');
+      verifyResult.innerHTML =
+        '<div class="result-title">⚠️ No se encontró el token cifrado</div>' +
+        '<div class="result-data">Asegúrate de pegar el mensaje completo con la sección "🔒 TOKEN CIFRADO AES-GCM".</div>';
+      return;
+    }
+
+    const tokenCifrado = encMatch[1].trim();
+    const datos = await decryptPayload(tokenCifrado);
+
+    if (!datos){
+      verifyResult.classList.add('show','fail');
+      verifyResult.innerHTML =
+        '<div class="result-title">❌ TOKEN INVÁLIDO · Mensaje alterado</div>' +
+        '<div class="result-data">No se pudo descifrar el token.\n' +
+        'El mensaje fue modificado o la clave no coincide.</div>';
+      return;
+    }
+
+    // Validaciones adicionales
+    const detalleStr = (datos.d || []).map((v, i) => (v === 1 ? '✅' : '❌') + ' P' + (i+1)).join('\n');
+    const valido =
+      datos.m  === MATERIA_NOMBRE &&
+      datos.c  === CLASE_NUMERO &&
+      typeof datos.p === 'number' &&
+      typeof datos.a === 'number';
+
+    verifyResult.classList.add('show', valido ? 'ok' : 'warn');
+    verifyResult.innerHTML =
+      '<div class="result-title">' +
+        (valido ? '✅ MENSAJE VÁLIDO · Token descifrado correctamente' : '⚠️ Datos descifrados pero con valores inesperados') +
+      '</div>' +
+      '<div class="result-data">' +
+        '<b>📚 Materia:</b> ' + (datos.m || '—') + '\n' +
+        '<b>🏫 Clase:</b> ' + (datos.c || '—') + '\n\n' +
+        '<b>🧑 Nombre:</b> ' + (datos.n || '—') + '\n' +
+        '<b>🆔 Cédula:</b> ' + (datos.cc || '—') + '\n' +
+        '<b>🎯 Puntos:</b> ' + (datos.p || 0) + ' / 20 (' + Math.round((datos.p||0)/20*100) + '%)\n' +
+        '<b>✅ Aciertos:</b> ' + (datos.a || 0) + ' de 7\n' +
+        '<b>🕒 Fecha:</b> ' + (datos.f || '—') + '\n\n' +
+        '<b>📋 Detalle:</b>\n' + detalleStr +
+      '</div>';
+  }
+
+  /* ============================================================
+     WHATSAPP (con token cifrado)
+     ============================================================ */
+  const waBtn = document.getElementById('waBtn');
+  waBtn.addEventListener('click', async () => {
+    waBtn.disabled = true;
+    try {
+      const nombre = (nameInput.value || '').trim() || 'Estudiante';
+      const cedula = (cedInput.value  || '').trim() || 'sin cédula';
+      const puntos = calculatePoints();
+      const aciertos = countCorrect();
+      const pct = Math.round(puntos / TOTAL_POINTS * 100);
+      let emoji, estado;
+      if (pct === 100)    { emoji='🌟'; estado='¡PERFECTO!'; }
+      else if (pct >= 80) { emoji='👏'; estado='¡Excelente!'; }
+      else if (pct >= 60) { emoji='💪'; estado='Aprobado'; }
+      else if (pct >= 40) { emoji='📖'; estado='Necesito repasar'; }
+      else                { emoji='🔁'; estado='Debo repasar más'; }
+
+      const fecha = buildFechaStr();
+
+      let detalle = '';
+      examAnswers.forEach((a, i) => {
+        const ok = a && a.correct ? '✅' : '❌';
+        const pts = (a && a.correct) ? QUESTION_POINTS[i] : 0;
+        detalle += `${ok} P${i+1} (${pts} pts)\n`;
+      });
+
+      // 🔐 Generar ambos tokens
+      const tokenCorto = generateToken(nombre, cedula, puntos, aciertos, fecha);
+      const tokenCifrado = await generateEncryptedToken();
+
+      const texto =
+`¡Hola! 🎓
+
+📝 *EVALUACIÓN · ARQUITECTURA DE ESCRITORIO x86-64*
+🏫 Fundabit Isla de Coche
+👨‍🏫 Prof. Luis Vásquez
+
+━━━━━━━━━━━━━━━
+📚 *Materia:* ${MATERIA_NOMBRE}
+🏫 *Clase:* ${CLASE_NUMERO}
+
+━━━━━━━━━━━━━━━
+👤 *DATOS DEL ESTUDIANTE*
+━━━━━━━━━━━━━━━
+🧑 Nombre: *${nombre}*
+🆔 Cédula: *${cedula}*
+
+━━━━━━━━━━━━━━━
+📊 *RESULTADOS*
+━━━━━━━━━━━━━━━
+🎯 Puntos: *${puntos} / ${TOTAL_POINTS} pts*
+✅ Correctas: *${aciertos} de ${TOTAL_QUESTIONS}*
+📈 Porcentaje: *${pct}%*
+${emoji} Estado: ${estado}
+
+📋 *Detalle:*
+${detalle}
+🕒 Fecha: ${fecha}
+━━━━━━━━━━━━━━━
+
+🔐 *CÓDIGO CORTO:*
+\`${tokenCorto}\`
+
+🔒 *TOKEN CIFRADO AES-GCM:*
+\`${tokenCifrado}\`
+
+Enviado desde la clase interactiva ✨`;
+
+      const url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(texto);
+      window.open(url, '_blank');
+    } catch(e){
+      showToast('❌ Error generando el token cifrado');
+      console.error(e);
+    } finally {
+      waBtn.disabled = false;
+    }
+  });
+
+  function confetti(){
+    const colors = ['#ff6b6b','#4ecdc4','#ffe66d','#a06cd5','#5ee7df','#ffffff'];
+    for (let i = 0; i < 60; i++){
+      const p = document.createElement('div');
+      p.className = 'confetti';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      p.style.width  = (6 + Math.random() * 8) + 'px';
+      p.style.height = (10 + Math.random() * 12) + 'px';
+      p.style.animationDelay    = (Math.random() * 0.7) + 's';
+      p.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 3600);
+    }
+  }
+
+  /* ============================================================
+     ARRANQUE
+     ============================================================ */
+  if (hasStarted && savedIndex > 0) {
+    goTo(savedIndex);
+    setTimeout(() => {
+      showToast('👋 ¡Bienvenido de nuevo!\nContinuando en la diapositiva ' + (savedIndex + 1));
+    }, 400);
+  } else {
+    goTo(0);
+    checkForm();
+  }
+
+  window.addEventListener('beforeunload', stopSpeaking);
+  window.addEventListener('pagehide', stopSpeaking);
+
+  if (isTeacherMode){
+    setTimeout(() => verifyOverlay.classList.add('show'), 500);
+  }
+
+})();
+</script>
+</body>
+</html>
